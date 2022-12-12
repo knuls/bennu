@@ -1,4 +1,4 @@
-# Buraq
+# Bennu
 The `solutions` API
 
 ## Wiki
