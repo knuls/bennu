@@ -1,0 +1,13 @@
+service:
+  name: "bennu"
+  port: 3000
+store:
+  client: "mongodb"
+  host: "127.0.0.1"
+  port: 27017
+  timeout: 10
+server:
+  readTimeout: 5
+  writeTimeout: 10
+  idleTimeout: 60
+  shutdownTimeout: 30
