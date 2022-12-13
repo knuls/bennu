@@ -9,9 +9,9 @@ import (
 	"github.com/bacheha/horus/logger"
 	"github.com/bacheha/horus/middlewares"
 	"github.com/bacheha/horus/res"
+	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,8 +20,8 @@ import (
 type Organization struct {
 	ID            primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty"`
 	Name          string               `json:"name" bson:"name" validate:"required,alphanum"`
-	UserID        primitive.ObjectID   `json:"userId" bson:"userId" validate:"required"`
-	Collaborators []primitive.ObjectID `json:"collaborators" bson:"collaborators" validate:"dive"`
+	UserID        primitive.ObjectID   `json:"userId" bson:"userId" validate:"required,oid"`
+	Collaborators []primitive.ObjectID `json:"collaborators" bson:"collaborators" validate:"dive,oid"`
 }
 
 func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
@@ -29,9 +29,9 @@ func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 type OrganizationHandler struct {
-	Logger   *logger.Logger
-	Validate *validator.Validate
-	DB       *mongo.Database
+	Logger    *logger.Logger
+	Validator *validator.Validator
+	DB        *mongo.Database
 }
 
 func (h *OrganizationHandler) Routes() *chi.Mux {
@@ -39,7 +39,7 @@ func (h *OrganizationHandler) Routes() *chi.Mux {
 	mux.Get("/", h.Find)    // GET /organization
 	mux.Post("/", h.Create) // POST /organization
 	mux.Route("/{id}", func(mux chi.Router) {
-		mux.Use(middlewares.ObjectID("id"))
+		mux.Use(middlewares.ValidateObjectID("id"))
 		mux.Use(OrganizationCtx)
 		mux.Get("/", h.FindById) // GET /organization/:id
 	})
@@ -51,6 +51,10 @@ func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	collection := h.DB.Collection("organizations")
 	cursor, err := collection.Find(r.Context(), bson.M{})
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			render.Render(rw, r, &res.JSON{"organizations": []interface{}{}})
+			return
+		}
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -88,7 +92,7 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate
-	if err := h.Validate.Struct(org); err != nil {
+	if err := h.Validator.ValidateStruct(org); err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -133,6 +137,10 @@ func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) 
 	result := collection.FindOne(r.Context(), bson.M{"_id": oid})
 	err = result.Err()
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			render.Render(rw, r, res.ErrNotFound(errors.New("no organization found")))
+			return
+		}
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -161,10 +169,10 @@ func OrganizationCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewOrganizationHandler(logger *logger.Logger, validate *validator.Validate, db *mongo.Database) *OrganizationHandler {
+func NewOrganizationHandler(logger *logger.Logger, validator *validator.Validator, db *mongo.Database) *OrganizationHandler {
 	return &OrganizationHandler{
-		Logger:   logger,
-		Validate: validate,
-		DB:       db,
+		Logger:    logger,
+		Validator: validator,
+		DB:        db,
 	}
 }

@@ -12,8 +12,8 @@ import (
 	"github.com/bacheha/bennu/handlers"
 	"github.com/bacheha/horus/logger"
 	"github.com/bacheha/horus/middlewares"
+	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -35,8 +35,8 @@ type StoreConfig struct {
 	Client  string
 	Host    string
 	Port    int
-	Timeout time.Duration
 	Name    string
+	Timeout time.Duration
 }
 
 type ServerConfig struct {
@@ -53,7 +53,7 @@ func main() {
 		fmt.Printf("logger new error: %v", err)
 		os.Exit(1)
 	}
-	defer log.Std.Sync()
+	defer log.GetLogger().Sync()
 
 	// config
 	viper.AddConfigPath(".")
@@ -107,22 +107,25 @@ func main() {
 	mux.Use(middlewares.JSON)
 	mux.Use(middlewares.RealIP)
 	mux.Use(middlewares.RequestID)
-	mux.Use(middlewares.Logger(log))
 	mux.Use(middlewares.Recoverer)
+	mux.Use(middlewares.Logger(log))
 
 	// validator
-	validate := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		log.Fatalf("validator new error: %s", err.Error())
+	}
 
 	// handlers
 	db := client.Database(cfg.Store.Name)
-	mux.Mount("/user", handlers.NewUserHandler(log, validate, db).Routes())
-	mux.Mount("/organization", handlers.NewOrganizationHandler(log, validate, db).Routes())
+	mux.Mount("/user", handlers.NewUserHandler(log, v, db).Routes())
+	mux.Mount("/organization", handlers.NewOrganizationHandler(log, v, db).Routes())
 
 	// server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Service.Port),
 		Handler:      mux,
-		ErrorLog:     log.ToStd(),
+		ErrorLog:     log.GetStdLogger(),
 		ReadTimeout:  cfg.Server.ReadTimeout * time.Second,
 		WriteTimeout: cfg.Server.WriteTimeout * time.Second,
 		IdleTimeout:  cfg.Server.IdleTimeout * time.Second,
