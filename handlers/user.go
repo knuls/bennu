@@ -9,9 +9,9 @@ import (
 	"github.com/bacheha/horus/logger"
 	"github.com/bacheha/horus/middlewares"
 	"github.com/bacheha/horus/res"
+	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -27,9 +27,9 @@ func (m *User) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 type UserHandler struct {
-	Logger   *logger.Logger
-	Validate *validator.Validate
-	DB       *mongo.Database
+	Logger    *logger.Logger
+	Validator *validator.Validator
+	DB        *mongo.Database
 }
 
 func (h *UserHandler) Routes() *chi.Mux {
@@ -37,7 +37,7 @@ func (h *UserHandler) Routes() *chi.Mux {
 	mux.Get("/", h.Find)    // GET /user
 	mux.Post("/", h.Create) // POST /user
 	mux.Route("/{id}", func(mux chi.Router) {
-		mux.Use(middlewares.ObjectID("id"))
+		mux.Use(middlewares.ValidateObjectID("id"))
 		mux.Use(UserCtx)
 		mux.Get("/", h.FindById) // GET /user/:id
 	})
@@ -49,6 +49,11 @@ func (h *UserHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	collection := h.DB.Collection("users")
 	cursor, err := collection.Find(r.Context(), bson.M{})
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			render.Status(r, http.StatusOK)
+			render.Render(rw, r, &res.JSON{"users": []interface{}{}})
+			return
+		}
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -86,7 +91,7 @@ func (h *UserHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate
-	if err := h.Validate.Struct(user); err != nil {
+	if err := h.Validator.ValidateStruct(user); err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -131,6 +136,10 @@ func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	result := collection.FindOne(r.Context(), bson.M{"_id": oid})
 	err = result.Err()
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			render.Render(rw, r, res.ErrNotFound(errors.New("no user found")))
+			return
+		}
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -159,10 +168,10 @@ func UserCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewUserHandler(logger *logger.Logger, validate *validator.Validate, db *mongo.Database) *UserHandler {
+func NewUserHandler(logger *logger.Logger, validator *validator.Validator, db *mongo.Database) *UserHandler {
 	return &UserHandler{
-		Logger:   logger,
-		Validate: validate,
-		DB:       db,
+		Logger:    logger,
+		Validator: validator,
+		DB:        db,
 	}
 }
