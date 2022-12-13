@@ -2,6 +2,8 @@ module github.com/bacheha/bennu
 
 go 1.18
 
+replace github.com/bacheha/horus => ../horus
+
 require (
 	github.com/bacheha/horus v0.6.1
 	github.com/go-chi/chi/v5 v5.0.8

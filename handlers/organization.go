@@ -52,6 +52,7 @@ func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	cursor, err := collection.Find(r.Context(), bson.M{})
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
+			render.Status(r, http.StatusOK)
 			render.Render(rw, r, &res.JSON{"organizations": []interface{}{}})
 			return
 		}
