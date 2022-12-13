@@ -22,7 +22,7 @@ type User struct {
 	Email string             `json:"email" bson:"email" validate:"required,email"`
 }
 
-func (u *User) Render(w http.ResponseWriter, r *http.Request) error {
+func (m *User) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (h *UserHandler) Find(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// compile user renders
+	// compile renders
 	renders := []render.Renderer{}
 	for _, user := range users {
 		renders = append(renders, user)
