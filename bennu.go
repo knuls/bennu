@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bachehah/bennu/handlers"
-	"github.com/bachehah/horus/logger"
-	"github.com/bachehah/horus/middlewares"
+	"github.com/bacheha/bennu/handlers"
+	"github.com/bacheha/horus/logger"
+	"github.com/bacheha/horus/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator"
 	"github.com/spf13/viper"
@@ -36,6 +36,7 @@ type StoreConfig struct {
 	Host    string
 	Port    int
 	Timeout time.Duration
+	Name    string
 }
 
 type ServerConfig struct {
@@ -65,6 +66,7 @@ func main() {
 	viper.BindEnv("store.host", "BENNU_STORE_HOST")
 	viper.BindEnv("store.port", "BENNU_STORE_PORT")
 	viper.BindEnv("store.timeout", "BENNU_STORE_TIMEOUT")
+	viper.BindEnv("store.name", "BENNU_STORE_NAME")
 	viper.AutomaticEnv()
 	var cfg Config
 	if err := viper.ReadInConfig(); err != nil {
@@ -102,18 +104,19 @@ func main() {
 	mux := chi.NewRouter()
 
 	// middlewares
-	mux.Use(middlewares.RequestID)
-	mux.Use(middlewares.RealIP)
-	mux.Use(middlewares.Recoverer)
 	mux.Use(middlewares.JSON)
+	mux.Use(middlewares.RealIP)
+	mux.Use(middlewares.RequestID)
 	mux.Use(middlewares.Logger(log))
+	mux.Use(middlewares.Recoverer)
 
 	// validator
 	validate := validator.New()
 
 	// handlers
-	mux.Mount("/user", handlers.NewUserHandler(log, validate, client).Routes())
-	mux.Mount("/organization", handlers.NewOrganizationHandler(log, validate, client).Routes())
+	db := client.Database(cfg.Store.Name)
+	mux.Mount("/user", handlers.NewUserHandler(log, validate, db).Routes())
+	mux.Mount("/organization", handlers.NewOrganizationHandler(log, validate, db).Routes())
 
 	// server
 	srv := &http.Server{

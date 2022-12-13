@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/bachehah/horus/logger"
+	"github.com/bacheha/horus/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -10,7 +10,7 @@ import (
 type OrganizationHandler struct {
 	Logger   *logger.Logger
 	Validate *validator.Validate
-	Client   *mongo.Client
+	DB       *mongo.Database
 }
 
 func (h *OrganizationHandler) Routes() *chi.Mux {
@@ -23,10 +23,10 @@ func (h *OrganizationHandler) Routes() *chi.Mux {
 	return mux
 }
 
-func NewOrganizationHandler(logger *logger.Logger, validate *validator.Validate, client *mongo.Client) *UserHandler {
+func NewOrganizationHandler(logger *logger.Logger, validate *validator.Validate, db *mongo.Database) *UserHandler {
 	return &UserHandler{
 		Logger:   logger,
 		Validate: validate,
-		Client:   client,
+		DB:       db,
 	}
 }
