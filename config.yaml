@@ -6,6 +6,7 @@ store:
   host: "127.0.0.1"
   port: 27017
   timeout: 10
+  name: "bachehah_bennu"
 server:
   readTimeout: 5
   writeTimeout: 10
