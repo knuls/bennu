@@ -7,6 +7,7 @@ replace github.com/bacheha/horus => ../horus
 require (
 	github.com/bacheha/horus v0.6.1
 	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.2
 	github.com/spf13/viper v1.14.0
 	go.mongodb.org/mongo-driver v1.11.1

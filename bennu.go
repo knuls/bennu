@@ -14,6 +14,7 @@ import (
 	"github.com/bacheha/horus/middlewares"
 	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,6 +25,7 @@ type Config struct {
 	Service ServiceConfig
 	Store   StoreConfig
 	Server  ServerConfig
+	Auth    AuthConfig
 }
 
 type ServiceConfig struct {
@@ -44,6 +46,10 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration
 	IdleTimeout     time.Duration
 	ShutdownTimeout time.Duration
+}
+
+type AuthConfig struct {
+	AllowedOrigins []string
 }
 
 func main() {
@@ -67,6 +73,7 @@ func main() {
 	viper.BindEnv("store.port", "BENNU_STORE_PORT")
 	viper.BindEnv("store.timeout", "BENNU_STORE_TIMEOUT")
 	viper.BindEnv("store.name", "BENNU_STORE_NAME")
+	viper.BindEnv("auth.allowedOrigins", "BENNU_CORS_ALLOWED_ORIGINS")
 	viper.AutomaticEnv()
 	var cfg Config
 	if err := viper.ReadInConfig(); err != nil {
@@ -104,6 +111,12 @@ func main() {
 	mux := chi.NewRouter()
 
 	// middlewares
+	mux.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   cfg.Auth.AllowedOrigins,
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"content-type"},
+		AllowCredentials: true,
+	}))
 	mux.Use(middlewares.JSON)
 	mux.Use(middlewares.RealIP)
 	mux.Use(middlewares.RequestID)
@@ -120,6 +133,7 @@ func main() {
 	db := client.Database(cfg.Store.Name)
 	mux.Mount("/user", handlers.NewUserHandler(log, v, db).Routes())
 	mux.Mount("/organization", handlers.NewOrganizationHandler(log, v, db).Routes())
+	mux.Mount("/auth", handlers.NewAuthHandler(log, v, db).Routes())
 
 	// server
 	srv := &http.Server{

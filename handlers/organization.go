@@ -28,6 +28,8 @@ func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+type organizationIDCtxKey struct{}
+
 type OrganizationHandler struct {
 	Logger    *logger.Logger
 	Validator *validator.Validator
@@ -126,7 +128,7 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 
 func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	// serialize id
-	id := r.Context().Value("orgId").(string)
+	id := r.Context().Value(organizationIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
@@ -165,7 +167,7 @@ func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) 
 
 func OrganizationCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), "orgId", chi.URLParam(r, "id"))
+		ctx := context.WithValue(r.Context(), organizationIDCtxKey{}, chi.URLParam(r, "id"))
 		next.ServeHTTP(w, r.Clone(ctx))
 	})
 }

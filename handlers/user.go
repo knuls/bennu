@@ -26,6 +26,8 @@ func (m *User) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+type userIDCtxKey struct{}
+
 type UserHandler struct {
 	Logger    *logger.Logger
 	Validator *validator.Validator
@@ -124,7 +126,7 @@ func (h *UserHandler) Create(rw http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	// serialize id
-	id := r.Context().Value("userId").(string)
+	id := r.Context().Value(userIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
@@ -163,7 +165,7 @@ func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 
 func UserCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), "userId", chi.URLParam(r, "id"))
+		ctx := context.WithValue(r.Context(), userIDCtxKey{}, chi.URLParam(r, "id"))
 		next.ServeHTTP(w, r.Clone(ctx))
 	})
 }

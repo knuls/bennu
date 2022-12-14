@@ -12,3 +12,5 @@ server:
   writeTimeout: 10
   idleTimeout: 60
   shutdownTimeout: 30
+auth:
+  allowedOrigins: ["*"]
