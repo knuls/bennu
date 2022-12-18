@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bacheha/bennu/handlers"
-	"github.com/bacheha/horus/logger"
-	"github.com/bacheha/horus/middlewares"
-	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/knuls/bennu/handlers"
+	"github.com/knuls/horus/logger"
+	"github.com/knuls/horus/middlewares"
+	"github.com/knuls/horus/validator"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,10 +22,10 @@ import (
 )
 
 type Config struct {
-	Service ServiceConfig
-	Store   StoreConfig
-	Server  ServerConfig
-	Auth    AuthConfig
+	Service  ServiceConfig
+	Store    StoreConfig
+	Server   ServerConfig
+	Security SecurityConfig
 }
 
 type ServiceConfig struct {
@@ -48,8 +48,11 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
-type AuthConfig struct {
-	AllowedOrigins []string
+type SecurityConfig struct {
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	AllowCredentials bool
 }
 
 func main() {
@@ -112,10 +115,10 @@ func main() {
 
 	// middlewares
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.Auth.AllowedOrigins,
-		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"content-type"},
-		AllowCredentials: true,
+		AllowedOrigins:   cfg.Security.AllowedOrigins,
+		AllowedMethods:   cfg.Security.AllowedMethods,
+		AllowedHeaders:   cfg.Security.AllowedHeaders,
+		AllowCredentials: cfg.Security.AllowCredentials,
 	}))
 	mux.Use(middlewares.JSON)
 	mux.Use(middlewares.RealIP)

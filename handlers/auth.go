@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bacheha/horus/logger"
-	"github.com/bacheha/horus/res"
-	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/horus/logger"
+	"github.com/knuls/horus/res"
+	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Token struct {
@@ -24,6 +25,7 @@ type Token struct {
 	Active    bool               `json:"active" bson:"active" validate:"required"`
 	CreatedAt time.Time          `json:"createdAt" bson:"createdAt" validate:"required"`
 	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt" validate:"required"`
+	UserID    primitive.ObjectID `json:"userId" bson:"userId" validate:"required,oid"`
 }
 
 type AuthHandler struct {
@@ -34,15 +36,23 @@ type AuthHandler struct {
 
 func (h *AuthHandler) Routes() *chi.Mux {
 	mux := chi.NewRouter()
-	mux.Post("/login", h.Login)                         // POST /auth/login
-	mux.Post("/register", h.Register)                   // POST /auth/register
-	mux.Post("/verify-email", h.VerifyEmail)            // POST /auth/verify-email
-	mux.Post("/verify-reset-password", h.ResetPassword) // POST /auth/verify-reset-password
-	mux.Post("/logout", h.Logout)                       // POST /auth/logout
+	mux.Get("/csrf", h.CSRF)                     // GET /auth/csrf
+	mux.Post("/login", h.Login)                  // POST /auth/login
+	mux.Post("/register", h.Register)            // POST /auth/register
+	mux.Post("/reset-password", h.ResetPassword) // POST /auth/reset-password
+	mux.Post("/logout", h.Logout)                // POST /auth/logout
+	mux.Route("/verify", func(mux chi.Router) {
+		mux.Post("/email", h.VerifyEmail)                  // POST /auth/verify/email
+		mux.Post("/reset-password", h.VerifyResetPassword) // POST /auth/verify/reset-password
+	})
 	mux.Route("/token", func(mux chi.Router) {
 		mux.Post("/refresh", h.TokenRefresh) // POST /auth/token/refresh
 	})
 	return mux
+}
+
+func (h *AuthHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
+	// generate csrf token for POST / PATCH requests
 }
 
 func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
@@ -51,7 +61,7 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	// compare pass
 	// if invalid pass -> invalid user/pass
 	// create access & refresh tokens
-	// set access token in resp, set refresh token in cookie
+	// set access token in resp & refresh token in cookie
 }
 
 func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
@@ -88,6 +98,20 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// populate system user fields
+	now := time.Now()
+	user.Verified = false
+	user.CreatedAt = now
+	user.UpdatedAt = now
+
+	// hash password
+	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
+	if err != nil {
+		render.Render(rw, r, res.Err(err, http.StatusInternalServerError))
+		return
+	}
+	user.Password = string(bytes)
+
 	// insert
 	result, err := collection.InsertOne(r.Context(), user)
 	if err != nil {
@@ -104,12 +128,12 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
-	// find user
+	// find user by email
 	// send password-reset email with token
 }
 
 func (h *AuthHandler) VerifyEmail(rw http.ResponseWriter, r *http.Request) {
-	// update user status to active
+	// update user verified to true
 	// de-activate verify email token
 }
 
@@ -118,13 +142,13 @@ func (h *AuthHandler) VerifyResetPassword(rw http.ResponseWriter, r *http.Reques
 	// de-activate reset password token
 }
 
-func (h *AuthHandler) Logout(rw http.ResponseWriter, r *http.Request) {
-	// de-activate refresh and access token(s)
-}
-
 func (h *AuthHandler) TokenRefresh(rw http.ResponseWriter, r *http.Request) {
 	// check if refresh token is valid
 	// if valid -> create & respond with access token (in resp) & refresh token (in cookie)
+}
+
+func (h *AuthHandler) Logout(rw http.ResponseWriter, r *http.Request) {
+	// de-activate refresh and access token(s)
 }
 
 func NewAuthHandler(logger *logger.Logger, validator *validator.Validator, db *mongo.Database) *AuthHandler {
