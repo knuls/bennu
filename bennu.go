@@ -73,7 +73,7 @@ func main() {
 	viper.BindEnv("store.port", "BENNU_STORE_PORT")
 	viper.BindEnv("store.timeout", "BENNU_STORE_TIMEOUT")
 	viper.BindEnv("store.name", "BENNU_STORE_NAME")
-	viper.BindEnv("auth.allowedOrigins", "BENNU_CORS_ALLOWED_ORIGINS")
+	viper.BindEnv("auth.allowedOrigins", "BENNU_AUTH_ALLOWED_ORIGINS")
 	viper.AutomaticEnv()
 	var cfg Config
 	if err := viper.ReadInConfig(); err != nil {

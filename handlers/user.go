@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
@@ -20,7 +19,6 @@ import (
 
 type User struct {
 	ID          primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Username    string             `json:"username" bson:"username" valiate:"required"`
 	Email       string             `json:"email" bson:"email" validate:"required,email"`
 	FirstName   string             `json:"firstName" bson:"firstName" validate:"required"`
 	LastName    string             `json:"lastName" bson:"lastName" validate:"required"`
@@ -45,8 +43,7 @@ type UserHandler struct {
 
 func (h *UserHandler) Routes() *chi.Mux {
 	mux := chi.NewRouter()
-	mux.Get("/", h.Find)    // GET /user
-	mux.Post("/", h.Create) // POST /user
+	mux.Get("/", h.Find) // GET /user
 	mux.Route("/{id}", func(mux chi.Router) {
 		mux.Use(middlewares.ValidateObjectID("id"))
 		mux.Use(UserCtx)
@@ -89,48 +86,6 @@ func (h *UserHandler) Find(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}
-}
-
-func (h *UserHandler) Create(rw http.ResponseWriter, r *http.Request) {
-	// decode
-	var user *User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	defer r.Body.Close()
-	if err != nil {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-
-	// validate
-	if err := h.Validator.ValidateStruct(user); err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// users
-	collection := h.DB.Collection("users")
-
-	// ensure email does not exist
-	count, err := collection.CountDocuments(r.Context(), bson.M{"email": user.Email})
-	if err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-	if count > 0 {
-		render.Render(rw, r, res.ErrBadRequest(errors.New("email already exists")))
-		return
-	}
-
-	// insert
-	result, err := collection.InsertOne(r.Context(), user)
-	if err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// render
-	render.Status(r, http.StatusCreated)
-	render.Respond(rw, r, &res.JSON{"id": result.InsertedID})
 }
 
 func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
