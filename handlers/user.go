@@ -114,7 +114,7 @@ func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	var user *User
 	err = result.Decode(&user)
 	if err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
+		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
 

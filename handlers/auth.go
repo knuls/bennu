@@ -28,6 +28,19 @@ type Token struct {
 	UserID    primitive.ObjectID `json:"userId" bson:"userId" validate:"required,oid"`
 }
 
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type resetPasswordRequest struct {
+	Email string `json:"email"`
+}
+
+type verifyResetPasswordRequest struct {
+	Password string `json:"password"`
+}
+
 type AuthHandler struct {
 	Logger    *logger.Logger
 	Validator *validator.Validator
@@ -56,12 +69,48 @@ func (h *AuthHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
+	payload := &loginRequest{}
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	defer r.Body.Close()
+	if err == io.EOF {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
+	if err != nil {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
+
 	// find user by email
-	// if no user -> invalid user/pass
+	collection := h.DB.Collection("users")
+	result := collection.FindOne(r.Context(), bson.M{"email": payload.Email})
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			render.Render(rw, r, res.ErrNotFound(errors.New("invalid username or password")))
+			return
+		}
+		render.Render(rw, r, res.ErrBadRequest(err))
+		return
+	}
+
+	// decode
+	var user *User
+	err = result.Decode(&user)
+	if err != nil {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
+
 	// compare pass
-	// if invalid pass -> invalid user/pass
-	// create access & refresh tokens
-	// set access token in resp & refresh token in cookie
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password))
+	if err != nil {
+		render.Render(rw, r, res.ErrNotFound(errors.New("invalid username or password")))
+		return
+	}
+	// TODO: create access & refresh tokens
+	// TODO: set access token in resp & refresh token in cookie
+	render.Status(r, http.StatusOK)
+	render.Respond(rw, r, &res.JSON{"token": "token"})
 }
 
 func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
@@ -70,7 +119,7 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
 	if err == io.EOF {
-		render.Render(rw, r, res.ErrDecode(errors.New("empty body")))
+		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
 	if err != nil {
@@ -119,8 +168,7 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// create token
-	// send verify email with token
+	// TODO: create token & send verify email with token
 
 	// render
 	render.Status(r, http.StatusCreated)
@@ -128,17 +176,58 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
-	// find user by email
-	// send password-reset email with token
+	payload := &resetPasswordRequest{}
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	defer r.Body.Close()
+	if err == io.EOF {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
+	if err != nil {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
+
+	// find user by email and verified = true
+	collection := h.DB.Collection("users")
+	filter := bson.M{
+		"$and": bson.A{
+			bson.M{"email": payload.Email},
+			bson.M{"verified": true},
+		},
+	}
+	result := collection.FindOne(r.Context(), filter)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			render.Render(rw, r, res.ErrNotFound(errors.New("no user found")))
+			return
+		}
+		render.Render(rw, r, res.ErrBadRequest(err))
+		return
+	}
+
+	// decode
+	var user *User
+	err = result.Decode(&user)
+	if err != nil {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
+
+	// TODO: send password-reset email with token
+	render.Status(r, http.StatusOK)
+	render.Respond(rw, r, &res.JSON{"token": user.Email})
 }
 
 func (h *AuthHandler) VerifyEmail(rw http.ResponseWriter, r *http.Request) {
 	// update user verified to true
+	// get user id from URL query param?
 	// de-activate verify email token
 }
 
 func (h *AuthHandler) VerifyResetPassword(rw http.ResponseWriter, r *http.Request) {
 	// update user password
+	// get user id from URL query param?
 	// de-activate reset password token
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -100,6 +101,10 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	var org *Organization
 	err := json.NewDecoder(r.Body).Decode(&org)
 	defer r.Body.Close()
+	if err == io.EOF {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
 	if err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
