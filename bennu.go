@@ -105,8 +105,6 @@ func main() {
 		log.Fatalf("config decode error: %v", err)
 	}
 
-	log.Info("CONFIG", "cfg", cfg)
-
 	// db
 	dbCtx, cancel := context.WithTimeout(context.Background(), cfg.Store.Timeout*time.Second)
 	defer cancel()
