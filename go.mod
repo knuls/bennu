@@ -1,15 +1,17 @@
-module github.com/bacheha/bennu
+module github.com/knuls/bennu
 
 go 1.18
 
-replace github.com/bacheha/horus => ../horus
+replace github.com/knuls/horus => ../horus
 
 require (
-	github.com/bacheha/horus v0.6.1
 	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.2
+	github.com/knuls/horus v0.0.0-00010101000000-000000000000
 	github.com/spf13/viper v1.14.0
 	go.mongodb.org/mongo-driver v1.11.1
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 )
 
 require (
@@ -40,7 +42,6 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
 	golang.org/x/text v0.4.0 // indirect

@@ -9,11 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bacheha/bennu/handlers"
-	"github.com/bacheha/horus/logger"
-	"github.com/bacheha/horus/middlewares"
-	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
+	"github.com/knuls/bennu/handlers"
+	"github.com/knuls/horus/logger"
+	"github.com/knuls/horus/middlewares"
+	"github.com/knuls/horus/validator"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,9 +22,10 @@ import (
 )
 
 type Config struct {
-	Service ServiceConfig
-	Store   StoreConfig
-	Server  ServerConfig
+	Service  ServiceConfig
+	Store    StoreConfig
+	Server   ServerConfig
+	Security SecurityConfig
 }
 
 type ServiceConfig struct {
@@ -44,6 +46,13 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration
 	IdleTimeout     time.Duration
 	ShutdownTimeout time.Duration
+}
+
+type SecurityConfig struct {
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	AllowCredentials bool
 }
 
 func main() {
@@ -67,6 +76,7 @@ func main() {
 	viper.BindEnv("store.port", "BENNU_STORE_PORT")
 	viper.BindEnv("store.timeout", "BENNU_STORE_TIMEOUT")
 	viper.BindEnv("store.name", "BENNU_STORE_NAME")
+	viper.BindEnv("auth.allowedOrigins", "BENNU_AUTH_ALLOWED_ORIGINS")
 	viper.AutomaticEnv()
 	var cfg Config
 	if err := viper.ReadInConfig(); err != nil {
@@ -104,6 +114,12 @@ func main() {
 	mux := chi.NewRouter()
 
 	// middlewares
+	mux.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   cfg.Security.AllowedOrigins,
+		AllowedMethods:   cfg.Security.AllowedMethods,
+		AllowedHeaders:   cfg.Security.AllowedHeaders,
+		AllowCredentials: cfg.Security.AllowCredentials,
+	}))
 	mux.Use(middlewares.JSON)
 	mux.Use(middlewares.RealIP)
 	mux.Use(middlewares.RequestID)
@@ -120,6 +136,7 @@ func main() {
 	db := client.Database(cfg.Store.Name)
 	mux.Mount("/user", handlers.NewUserHandler(log, v, db).Routes())
 	mux.Mount("/organization", handlers.NewOrganizationHandler(log, v, db).Routes())
+	mux.Mount("/auth", handlers.NewAuthHandler(log, v, db).Routes())
 
 	// server
 	srv := &http.Server{

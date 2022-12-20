@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"time"
 
-	"github.com/bacheha/horus/logger"
-	"github.com/bacheha/horus/middlewares"
-	"github.com/bacheha/horus/res"
-	"github.com/bacheha/horus/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/horus/logger"
+	"github.com/knuls/horus/middlewares"
+	"github.com/knuls/horus/res"
+	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,13 +22,25 @@ import (
 type Organization struct {
 	ID            primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty"`
 	Name          string               `json:"name" bson:"name" validate:"required,alphanum"`
+	Slug          string               `json:"slug" bson:"slug" validate:"required"`
+	Profile       OrganizationProfile  `json:"profile" bson:"profile"`
+	CreatedAt     time.Time            `json:"createdAt" bson:"createdAt" validate:"required"`
+	UpdatedAt     time.Time            `json:"updatedAt" bson:"updatedAt" validate:"required"`
 	UserID        primitive.ObjectID   `json:"userId" bson:"userId" validate:"required,oid"`
-	Collaborators []primitive.ObjectID `json:"collaborators" bson:"collaborators" validate:"dive,oid"`
+	Collaborators []primitive.ObjectID `json:"collaborators,omitempty" bson:"collaborators,omitempty" validate:"dive,oid"`
+}
+
+type OrganizationProfile struct {
+	Website string `json:"website" bson:"website" validate:"url"`
+	Address string `json:"address" bson:"address"`
+	Phone   string `json:"phone" bson:"phone" validate:"e164"`
 }
 
 func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
+
+type organizationIDCtxKey struct{}
 
 type OrganizationHandler struct {
 	Logger    *logger.Logger
@@ -87,6 +101,10 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	var org *Organization
 	err := json.NewDecoder(r.Body).Decode(&org)
 	defer r.Body.Close()
+	if err == io.EOF {
+		render.Render(rw, r, res.ErrDecode(err))
+		return
+	}
 	if err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
@@ -126,7 +144,7 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 
 func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	// serialize id
-	id := r.Context().Value("orgId").(string)
+	id := r.Context().Value(organizationIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
@@ -165,7 +183,7 @@ func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) 
 
 func OrganizationCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), "orgId", chi.URLParam(r, "id"))
+		ctx := context.WithValue(r.Context(), organizationIDCtxKey{}, chi.URLParam(r, "id"))
 		next.ServeHTTP(w, r.Clone(ctx))
 	})
 }
