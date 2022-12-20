@@ -1,6 +1,6 @@
 module github.com/knuls/bennu
 
-go 1.18
+go 1.19
 
 replace github.com/knuls/horus => ../horus
 
