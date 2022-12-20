@@ -8,12 +8,14 @@ store:
   name: "knuls_bennu"
   timeout: 10
 server:
-  readTimeout: 5
-  writeTimeout: 10
-  idleTimeout: 60
-  shutdownTimeout: 30
+  timeout:
+    read: 5
+    write: 10
+    idle: 60
+    shutdown: 30
 security:
-  allowedOrigins: ["*"]
-  allowedMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
-  allowedHeaders: ["content-type"]
-  allowedCredentials: true
+  allowed:
+    origins: ["*"]
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
+    headers: ["content-type"]
+  allowCredentials: true

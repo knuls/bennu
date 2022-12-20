@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,16 +43,20 @@ type StoreConfig struct {
 }
 
 type ServerConfig struct {
-	ReadTimeout     time.Duration
-	WriteTimeout    time.Duration
-	IdleTimeout     time.Duration
-	ShutdownTimeout time.Duration
+	Timeout struct {
+		Read     time.Duration
+		Write    time.Duration
+		Idle     time.Duration
+		Shutdown time.Duration
+	}
 }
 
 type SecurityConfig struct {
-	AllowedOrigins   []string
-	AllowedMethods   []string
-	AllowedHeaders   []string
+	Allowed struct {
+		Origins []string
+		Methods []string
+		Headers []string
+	}
 	AllowCredentials bool
 }
 
@@ -65,31 +70,42 @@ func main() {
 	defer log.GetLogger().Sync()
 
 	// config
-	viper.AddConfigPath(".")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.SetEnvPrefix("bennu")
-	viper.BindEnv("service.name", "BENNU_SERVICE_NAME")
-	viper.BindEnv("service.port", "BENNU_SERVICE_PORT")
-	viper.BindEnv("store.client", "BENNU_STORE_CLIENT")
-	viper.BindEnv("store.host", "BENNU_STORE_HOST")
-	viper.BindEnv("store.port", "BENNU_STORE_PORT")
-	viper.BindEnv("store.timeout", "BENNU_STORE_TIMEOUT")
-	viper.BindEnv("store.name", "BENNU_STORE_NAME")
-	viper.BindEnv("auth.allowedOrigins", "BENNU_AUTH_ALLOWED_ORIGINS")
-	viper.AutomaticEnv()
+	c := viper.New()
+	c.AddConfigPath(".")
+	c.SetConfigName("config")
+	c.SetConfigType("yaml")
+	c.SetEnvPrefix("bennu")
+	c.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	c.BindEnv("service.name")
+	c.BindEnv("service.port")
+	c.BindEnv("store.client")
+	c.BindEnv("store.host")
+	c.BindEnv("store.port")
+	c.BindEnv("store.timeout")
+	c.BindEnv("store.name")
+	c.BindEnv("server.timeout.read")
+	c.BindEnv("server.timeout.write")
+	c.BindEnv("server.timeout.idle")
+	c.BindEnv("server.timeout.shutdown")
+	c.BindEnv("security.allowed.origins")
+	c.BindEnv("security.allowed.methods")
+	c.BindEnv("security.allowed.headers")
+	c.BindEnv("security.allowCredentials")
+	c.AutomaticEnv()
 	var cfg Config
-	if err := viper.ReadInConfig(); err != nil {
+	if err := c.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Fatalf("config file not found error: %v", err)
 		} else {
 			log.Fatalf("config file read error: %v", err)
 		}
 	}
-	err = viper.Unmarshal(&cfg)
+	err = c.Unmarshal(&cfg)
 	if err != nil {
 		log.Fatalf("config decode error: %v", err)
 	}
+
+	log.Info("CONFIG", "cfg", cfg)
 
 	// db
 	dbCtx, cancel := context.WithTimeout(context.Background(), cfg.Store.Timeout*time.Second)
@@ -115,9 +131,9 @@ func main() {
 
 	// middlewares
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.Security.AllowedOrigins,
-		AllowedMethods:   cfg.Security.AllowedMethods,
-		AllowedHeaders:   cfg.Security.AllowedHeaders,
+		AllowedOrigins:   cfg.Security.Allowed.Origins,
+		AllowedMethods:   cfg.Security.Allowed.Methods,
+		AllowedHeaders:   cfg.Security.Allowed.Headers,
 		AllowCredentials: cfg.Security.AllowCredentials,
 	}))
 	mux.Use(middlewares.JSON)
@@ -143,9 +159,9 @@ func main() {
 		Addr:         fmt.Sprintf(":%d", cfg.Service.Port),
 		Handler:      mux,
 		ErrorLog:     log.GetStdLogger(),
-		ReadTimeout:  cfg.Server.ReadTimeout * time.Second,
-		WriteTimeout: cfg.Server.WriteTimeout * time.Second,
-		IdleTimeout:  cfg.Server.IdleTimeout * time.Second,
+		ReadTimeout:  cfg.Server.Timeout.Read * time.Second,
+		WriteTimeout: cfg.Server.Timeout.Write * time.Second,
+		IdleTimeout:  cfg.Server.Timeout.Idle * time.Second,
 	}
 
 	// listen
@@ -162,7 +178,7 @@ func main() {
 	sig := <-sigCh
 	log.Infof("signal: %s", sig.String())
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.Server.Timeout.Shutdown*time.Second)
 	defer cancel()
 	err = srv.Shutdown(shutdownCtx)
 	if err != nil {
