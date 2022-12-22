@@ -15,3 +15,7 @@ type Token struct {
 	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt" validate:"required"`
 	UserID    primitive.ObjectID `json:"userId" bson:"userId" validate:"required,oid"`
 }
+
+func NewToken() *Token {
+	return &Token{}
+}

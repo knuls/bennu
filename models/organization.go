@@ -27,3 +27,7 @@ type OrganizationProfile struct {
 func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
+
+func NewOrganization() *Organization {
+	return &Organization{}
+}
