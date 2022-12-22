@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/res"
@@ -16,22 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-type User struct {
-	ID          primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Email       string             `json:"email" bson:"email" validate:"required,email"`
-	FirstName   string             `json:"firstName" bson:"firstName" validate:"required"`
-	LastName    string             `json:"lastName" bson:"lastName" validate:"required"`
-	Password    string             `json:"password" bson:"password" validate:"required"`
-	Verified    bool               `json:"verified" bson:"verified" validate:"required"`
-	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt" validate:"required"`
-	UpdatedAt   time.Time          `json:"updatedAt" bson:"updatedAt" validate:"required"`
-	LastLoginAt time.Time          `json:"lastLoginAt,omitempty" bson:"lastLoginAt,omitempty"`
-}
-
-func (m *User) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
 
 type userIDCtxKey struct{}
 
@@ -67,7 +51,7 @@ func (h *UserHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// decode
-	var users []*User
+	var users []*models.User
 	if err = cursor.All(r.Context(), &users); err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -111,7 +95,7 @@ func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// decode
-	var user *User
+	var user *models.User
 	err = result.Decode(&user)
 	if err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
