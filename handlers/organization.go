@@ -6,10 +6,10 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/res"
@@ -18,27 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-type Organization struct {
-	ID            primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty"`
-	Name          string               `json:"name" bson:"name" validate:"required,alphanum"`
-	Slug          string               `json:"slug" bson:"slug" validate:"required"`
-	Profile       OrganizationProfile  `json:"profile" bson:"profile"`
-	CreatedAt     time.Time            `json:"createdAt" bson:"createdAt" validate:"required"`
-	UpdatedAt     time.Time            `json:"updatedAt" bson:"updatedAt" validate:"required"`
-	UserID        primitive.ObjectID   `json:"userId" bson:"userId" validate:"required,oid"`
-	Collaborators []primitive.ObjectID `json:"collaborators,omitempty" bson:"collaborators,omitempty" validate:"dive,oid"`
-}
-
-type OrganizationProfile struct {
-	Website string `json:"website" bson:"website" validate:"url"`
-	Address string `json:"address" bson:"address"`
-	Phone   string `json:"phone" bson:"phone" validate:"e164"`
-}
-
-func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
 
 type organizationIDCtxKey struct{}
 
@@ -75,7 +54,7 @@ func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// decode
-	var orgs []*Organization
+	var orgs []*models.Organization
 	if err = cursor.All(r.Context(), &orgs); err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -98,7 +77,7 @@ func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 
 func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	// decode
-	var org *Organization
+	var org *models.Organization
 	err := json.NewDecoder(r.Body).Decode(&org)
 	defer r.Body.Close()
 	if err == io.EOF {
@@ -165,7 +144,7 @@ func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) 
 	}
 
 	// decode
-	var org *Organization
+	var org *models.Organization
 	err = result.Decode(&org)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))

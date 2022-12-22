@@ -9,24 +9,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
 	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type Token struct {
-	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Scope     string             `json:"scope" bson:"scope" validate:"required"`
-	Token     string             `json:"token" bson:"token" validate:"required"`
-	Active    bool               `json:"active" bson:"active" validate:"required"`
-	CreatedAt time.Time          `json:"createdAt" bson:"createdAt" validate:"required"`
-	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt" validate:"required"`
-	UserID    primitive.ObjectID `json:"userId" bson:"userId" validate:"required,oid"`
-}
 
 type loginRequest struct {
 	Email    string `json:"email"`
@@ -35,10 +25,6 @@ type loginRequest struct {
 
 type resetPasswordRequest struct {
 	Email string `json:"email"`
-}
-
-type verifyResetPasswordRequest struct {
-	Password string `json:"password"`
 }
 
 type AuthHandler struct {
@@ -94,7 +80,7 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// decode
-	var user *User
+	var user *models.User
 	err = result.Decode(&user)
 	if err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
@@ -115,7 +101,7 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	// decode
-	user := &User{}
+	user := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
 	if err == io.EOF {
@@ -207,7 +193,7 @@ func (h *AuthHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// decode
-	var user *User
+	var user *models.User
 	err = result.Decode(&user)
 	if err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
