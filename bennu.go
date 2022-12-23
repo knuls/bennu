@@ -153,7 +153,7 @@ func main() {
 
 	// handlers
 	mux.Mount("/user", handlers.NewUserHandler(log, factory).Routes())
-	mux.Mount("/organization", handlers.NewOrganizationHandler(log, v, db).Routes())
+	mux.Mount("/organization", handlers.NewOrganizationHandler(log, factory).Routes())
 	mux.Mount("/auth", handlers.NewAuthHandler(log, v, db).Routes())
 
 	// server

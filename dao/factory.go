@@ -26,7 +26,7 @@ func (f *Factory) GetTokenDao() *TokenDao {
 func NewFactory(db *mongo.Database, validator *validator.Validator) *Factory {
 	return &Factory{
 		userDao:         NewUserDao(db.Collection("users"), validator),
-		organizationDao: NewOrganizationDao(),
+		organizationDao: NewOrganizationDao(db.Collection("organizations"), validator),
 		tokenDao:        NewTokenDao(),
 	}
 }

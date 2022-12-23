@@ -3,28 +3,24 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/res"
-	"github.com/knuls/horus/validator"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type organizationIDCtxKey struct{}
 
 type OrganizationHandler struct {
-	Logger    *logger.Logger
-	Validator *validator.Validator
-	DB        *mongo.Database
+	Logger     *logger.Logger
+	DaoFactory *dao.Factory
 }
 
 func (h *OrganizationHandler) Routes() *chi.Mux {
@@ -40,43 +36,23 @@ func (h *OrganizationHandler) Routes() *chi.Mux {
 }
 
 func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
-	// fetch
-	collection := h.DB.Collection("organizations")
-	cursor, err := collection.Find(r.Context(), bson.M{})
+	orgs, err := h.DaoFactory.GetOrganizationDao().Find(r.Context(), dao.Where{})
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			render.Status(r, http.StatusOK)
-			render.Render(rw, r, &res.JSON{"organizations": []interface{}{}})
-			return
-		}
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-
-	// decode
-	var orgs []*models.Organization
-	if err = cursor.All(r.Context(), &orgs); err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// compile renders
 	renders := []render.Renderer{}
 	for _, org := range orgs {
 		renders = append(renders, org)
 	}
-
-	// render
-	resp := &res.JSON{"organizations": renders}
 	render.Status(r, http.StatusOK)
-	if err := render.Render(rw, r, resp); err != nil {
+	if err := render.Render(rw, r, &res.JSON{"organizations": renders}); err != nil {
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}
 }
 
 func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
-	// decode
 	var org *models.Organization
 	err := json.NewDecoder(r.Body).Decode(&org)
 	defer r.Body.Close()
@@ -88,73 +64,29 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-
-	// validate
-	if err := h.Validator.ValidateStruct(org); err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// orgs
-	collection := h.DB.Collection("organizations")
-
-	// ensure email does not exist
-	count, err := collection.CountDocuments(r.Context(), bson.M{"name": org.Name})
+	id, err := h.DaoFactory.GetOrganizationDao().Create(r.Context(), org)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	if count > 0 {
-		render.Render(rw, r, res.ErrBadRequest(errors.New("name already exists")))
-		return
-	}
-
-	// insert
-	result, err := collection.InsertOne(r.Context(), org)
-	if err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// render
 	render.Status(r, http.StatusCreated)
-	render.Respond(rw, r, &res.JSON{"id": result.InsertedID})
+	render.Respond(rw, r, &res.JSON{"id": id})
 }
 
 func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) {
-	// serialize id
 	id := r.Context().Value(organizationIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-
-	// fetch
-	collection := h.DB.Collection("organizations")
-	result := collection.FindOne(r.Context(), bson.M{"_id": oid})
-	err = result.Err()
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			render.Render(rw, r, res.ErrNotFound(errors.New("no organization found")))
-			return
-		}
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// decode
-	var org *models.Organization
-	err = result.Decode(&org)
+	org, err := h.DaoFactory.GetOrganizationDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-
-	// render
-	resp := &res.JSON{"organization": org}
 	render.Status(r, http.StatusOK)
-	if err := render.Render(rw, r, resp); err != nil {
+	if err := render.Render(rw, r, &res.JSON{"organization": org}); err != nil {
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}
@@ -167,10 +99,9 @@ func OrganizationCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewOrganizationHandler(logger *logger.Logger, validator *validator.Validator, db *mongo.Database) *OrganizationHandler {
+func NewOrganizationHandler(logger *logger.Logger, factory *dao.Factory) *OrganizationHandler {
 	return &OrganizationHandler{
-		Logger:    logger,
-		Validator: validator,
-		DB:        db,
+		Logger:     logger,
+		DaoFactory: factory,
 	}
 }
