@@ -2,18 +2,15 @@ package models
 
 import (
 	"net/http"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Organization struct {
-	ID            primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty"`
+	BaseModel
 	Name          string               `json:"name" bson:"name" validate:"required,alphanum"`
 	Slug          string               `json:"slug" bson:"slug" validate:"required"`
 	Profile       OrganizationProfile  `json:"profile" bson:"profile"`
-	CreatedAt     time.Time            `json:"createdAt" bson:"createdAt" validate:"required"`
-	UpdatedAt     time.Time            `json:"updatedAt" bson:"updatedAt" validate:"required"`
 	UserID        primitive.ObjectID   `json:"userId" bson:"userId" validate:"required,oid"`
 	Collaborators []primitive.ObjectID `json:"collaborators,omitempty" bson:"collaborators,omitempty" validate:"dive,oid"`
 }

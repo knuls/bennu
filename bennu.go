@@ -172,7 +172,7 @@ func main() {
 
 	// shutdown
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM, os.Kill)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	sig := <-sigCh
 	log.Infof("signal: %s", sig.String())
 
