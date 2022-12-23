@@ -9,12 +9,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
-	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,14 +22,9 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-type resetPasswordRequest struct {
-	Email string `json:"email"`
-}
-
 type AuthHandler struct {
-	Logger    *logger.Logger
-	Validator *validator.Validator
-	DB        *mongo.Database
+	Logger     *logger.Logger
+	DaoFactory *dao.Factory
 }
 
 func (h *AuthHandler) Routes() *chi.Mux {
@@ -55,7 +49,7 @@ func (h *AuthHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
-	payload := &loginRequest{}
+	var payload *loginRequest
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	defer r.Body.Close()
 	if err == io.EOF {
@@ -66,42 +60,34 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-
-	// find user by email
-	collection := h.DB.Collection("users")
-	result := collection.FindOne(r.Context(), bson.M{"email": payload.Email})
+	where := dao.Where{
+		{Key: "$and",
+			Value: bson.A{
+				bson.D{{Key: "email", Value: payload.Email}},
+				bson.D{{Key: "verified", Value: true}},
+			},
+		},
+	}
+	user, err := h.DaoFactory.GetUserDao().FindOne(r.Context(), where)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			render.Render(rw, r, res.ErrNotFound(errors.New("invalid username or password")))
-			return
-		}
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-
-	// decode
-	var user *models.User
-	err = result.Decode(&user)
-	if err != nil {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-
-	// compare pass
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password))
 	if err != nil {
 		render.Render(rw, r, res.ErrNotFound(errors.New("invalid username or password")))
 		return
 	}
+
 	// TODO: create access & refresh tokens
 	// TODO: set access token in resp & refresh token in cookie
+
 	render.Status(r, http.StatusOK)
 	render.Respond(rw, r, &res.JSON{"token": "token"})
 }
 
 func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
-	// decode
-	user := &models.User{}
+	var user *models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
 	if err == io.EOF {
@@ -112,43 +98,17 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-
-	// validate
-	if err := h.Validator.ValidateStruct(user); err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// users
-	collection := h.DB.Collection("users")
-
-	// ensure email does not exist
-	count, err := collection.CountDocuments(r.Context(), bson.M{"email": user.Email})
-	if err != nil {
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-	if count > 0 {
-		render.Render(rw, r, res.ErrBadRequest(errors.New("email already exists")))
-		return
-	}
-
-	// populate system user fields
 	now := time.Now()
 	user.Verified = false
 	user.CreatedAt = now
 	user.UpdatedAt = now
-
-	// hash password
 	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
 	if err != nil {
 		render.Render(rw, r, res.Err(err, http.StatusInternalServerError))
 		return
 	}
 	user.Password = string(bytes)
-
-	// insert
-	result, err := collection.InsertOne(r.Context(), user)
+	id, err := h.DaoFactory.GetUserDao().Create(r.Context(), user)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -156,53 +116,12 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 
 	// TODO: create token & send verify email with token
 
-	// render
 	render.Status(r, http.StatusCreated)
-	render.Respond(rw, r, &res.JSON{"id": result.InsertedID})
+	render.Respond(rw, r, &res.JSON{"id": id})
 }
 
 func (h *AuthHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
-	payload := &resetPasswordRequest{}
-	err := json.NewDecoder(r.Body).Decode(&payload)
-	defer r.Body.Close()
-	if err == io.EOF {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-	if err != nil {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-
-	// find user by email and verified = true
-	collection := h.DB.Collection("users")
-	filter := bson.M{
-		"$and": bson.A{
-			bson.M{"email": payload.Email},
-			bson.M{"verified": true},
-		},
-	}
-	result := collection.FindOne(r.Context(), filter)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			render.Render(rw, r, res.ErrNotFound(errors.New("no user found")))
-			return
-		}
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// decode
-	var user *models.User
-	err = result.Decode(&user)
-	if err != nil {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-
-	// TODO: send password-reset email with token
-	render.Status(r, http.StatusOK)
-	render.Respond(rw, r, &res.JSON{"token": user.Email})
+	//
 }
 
 func (h *AuthHandler) VerifyEmail(rw http.ResponseWriter, r *http.Request) {
@@ -226,10 +145,9 @@ func (h *AuthHandler) Logout(rw http.ResponseWriter, r *http.Request) {
 	// de-activate refresh and access token(s)
 }
 
-func NewAuthHandler(logger *logger.Logger, validator *validator.Validator, db *mongo.Database) *AuthHandler {
+func NewAuthHandler(logger *logger.Logger, factory *dao.Factory) *AuthHandler {
 	return &AuthHandler{
-		Logger:    logger,
-		Validator: validator,
-		DB:        db,
+		Logger:     logger,
+		DaoFactory: factory,
 	}
 }

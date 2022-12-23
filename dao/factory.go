@@ -27,6 +27,6 @@ func NewFactory(db *mongo.Database, validator *validator.Validator) *Factory {
 	return &Factory{
 		userDao:         NewUserDao(db.Collection("users"), validator),
 		organizationDao: NewOrganizationDao(db.Collection("organizations"), validator),
-		tokenDao:        NewTokenDao(),
+		tokenDao:        NewTokenDao(db.Collection("tokens"), validator),
 	}
 }
