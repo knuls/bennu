@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/handlers"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
@@ -146,9 +147,12 @@ func main() {
 		log.Fatalf("validator new error: %s", err.Error())
 	}
 
-	// handlers
+	// factory
 	db := client.Database(cfg.Store.Name)
-	mux.Mount("/user", handlers.NewUserHandler(log, v, db).Routes())
+	factory := dao.NewFactory(db, v)
+
+	// handlers
+	mux.Mount("/user", handlers.NewUserHandler(log, factory).Routes())
 	mux.Mount("/organization", handlers.NewOrganizationHandler(log, v, db).Routes())
 	mux.Mount("/auth", handlers.NewAuthHandler(log, v, db).Routes())
 

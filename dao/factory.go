@@ -1,27 +1,32 @@
 package dao
 
-type DaoFactory struct {
-	UserDao         *UserDao
-	OrganizationDao *OrganizationDao
-	TokenDao        *TokenDao
+import (
+	"github.com/knuls/horus/validator"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type Factory struct {
+	userDao         *UserDao
+	organizationDao *OrganizationDao
+	tokenDao        *TokenDao
 }
 
-func (f *DaoFactory) GetUserDao() *UserDao {
-	return f.UserDao
+func (f *Factory) GetUserDao() *UserDao {
+	return f.userDao
 }
 
-func (f *DaoFactory) GetOrganizationDao() *OrganizationDao {
-	return f.OrganizationDao
+func (f *Factory) GetOrganizationDao() *OrganizationDao {
+	return f.organizationDao
 }
 
-func (f *DaoFactory) GetTokenDao() *TokenDao {
-	return f.TokenDao
+func (f *Factory) GetTokenDao() *TokenDao {
+	return f.tokenDao
 }
 
-func NewDaoFactory() *DaoFactory {
-	return &DaoFactory{
-		UserDao:         NewUserDao(),
-		OrganizationDao: NewOrganizationDao(),
-		TokenDao:        NewTokenDao(),
+func NewFactory(db *mongo.Database, validator *validator.Validator) *Factory {
+	return &Factory{
+		userDao:         NewUserDao(db.Collection("users"), validator),
+		organizationDao: NewOrganizationDao(),
+		tokenDao:        NewTokenDao(),
 	}
 }
