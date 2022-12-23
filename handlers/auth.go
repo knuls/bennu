@@ -45,7 +45,7 @@ func (h *AuthHandler) Routes() *chi.Mux {
 }
 
 func (h *AuthHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
-	// generate csrf token for POST / PATCH requests
+	//
 }
 
 func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
@@ -125,24 +125,19 @@ func (h *AuthHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) VerifyEmail(rw http.ResponseWriter, r *http.Request) {
-	// update user verified to true
-	// get user id from URL query param?
-	// de-activate verify email token
+	//
 }
 
 func (h *AuthHandler) VerifyResetPassword(rw http.ResponseWriter, r *http.Request) {
-	// update user password
-	// get user id from URL query param?
-	// de-activate reset password token
+	//
 }
 
 func (h *AuthHandler) TokenRefresh(rw http.ResponseWriter, r *http.Request) {
-	// check if refresh token is valid
-	// if valid -> create & respond with access token (in resp) & refresh token (in cookie)
+	//
 }
 
 func (h *AuthHandler) Logout(rw http.ResponseWriter, r *http.Request) {
-	// de-activate refresh and access token(s)
+	//
 }
 
 func NewAuthHandler(logger *logger.Logger, factory *dao.Factory) *AuthHandler {
