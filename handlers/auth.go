@@ -23,8 +23,8 @@ type loginRequest struct {
 }
 
 type AuthHandler struct {
-	Logger     *logger.Logger
-	DaoFactory *dao.Factory
+	logger     *logger.Logger
+	daoFactory *dao.Factory
 }
 
 func (h *AuthHandler) Routes() *chi.Mux {
@@ -68,7 +68,7 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	user, err := h.DaoFactory.GetUserDao().FindOne(r.Context(), where)
+	user, err := h.daoFactory.GetUserDao().FindOne(r.Context(), where)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -108,7 +108,7 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Password = string(bytes)
-	id, err := h.DaoFactory.GetUserDao().Create(r.Context(), user)
+	id, err := h.daoFactory.GetUserDao().Create(r.Context(), user)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -142,7 +142,7 @@ func (h *AuthHandler) Logout(rw http.ResponseWriter, r *http.Request) {
 
 func NewAuthHandler(logger *logger.Logger, factory *dao.Factory) *AuthHandler {
 	return &AuthHandler{
-		Logger:     logger,
-		DaoFactory: factory,
+		logger:     logger,
+		daoFactory: factory,
 	}
 }

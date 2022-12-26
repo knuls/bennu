@@ -19,8 +19,8 @@ import (
 type organizationIDCtxKey struct{}
 
 type OrganizationHandler struct {
-	Logger     *logger.Logger
-	DaoFactory *dao.Factory
+	logger     *logger.Logger
+	daoFactory *dao.Factory
 }
 
 func (h *OrganizationHandler) Routes() *chi.Mux {
@@ -36,7 +36,7 @@ func (h *OrganizationHandler) Routes() *chi.Mux {
 }
 
 func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
-	orgs, err := h.DaoFactory.GetOrganizationDao().Find(r.Context(), dao.Where{})
+	orgs, err := h.daoFactory.GetOrganizationDao().Find(r.Context(), dao.Where{})
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -64,7 +64,7 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-	id, err := h.DaoFactory.GetOrganizationDao().Create(r.Context(), org)
+	id, err := h.daoFactory.GetOrganizationDao().Create(r.Context(), org)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -80,7 +80,7 @@ func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) 
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	org, err := h.DaoFactory.GetOrganizationDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
+	org, err := h.daoFactory.GetOrganizationDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -101,7 +101,7 @@ func OrganizationCtx(next http.Handler) http.Handler {
 
 func NewOrganizationHandler(logger *logger.Logger, factory *dao.Factory) *OrganizationHandler {
 	return &OrganizationHandler{
-		Logger:     logger,
-		DaoFactory: factory,
+		logger:     logger,
+		daoFactory: factory,
 	}
 }

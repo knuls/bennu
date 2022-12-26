@@ -16,7 +16,7 @@ type OrganizationDao struct {
 }
 
 func (d *OrganizationDao) Find(ctx context.Context, filter Where) ([]*models.Organization, error) {
-	orgs := []*models.Organization{}
+	var orgs []*models.Organization
 	cursor, err := d.organizations.Find(ctx, filter)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -39,8 +39,8 @@ func (d *OrganizationDao) FindOne(ctx context.Context, filter Where) (*models.Or
 		}
 		return nil, err
 	}
-	org := &models.Organization{}
-	if err = result.Decode(org); err != nil {
+	var org *models.Organization
+	if err = result.Decode(&org); err != nil {
 		return nil, err
 	}
 	return org, nil

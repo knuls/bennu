@@ -16,7 +16,7 @@ type UserDao struct {
 }
 
 func (d *UserDao) Find(ctx context.Context, filter Where) ([]*models.User, error) {
-	users := []*models.User{}
+	var users []*models.User
 	cursor, err := d.users.Find(ctx, filter)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -39,8 +39,8 @@ func (d *UserDao) FindOne(ctx context.Context, filter Where) (*models.User, erro
 		}
 		return nil, err
 	}
-	user := &models.User{}
-	if err = result.Decode(user); err != nil {
+	var user *models.User
+	if err = result.Decode(&user); err != nil {
 		return nil, err
 	}
 	return user, nil

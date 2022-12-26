@@ -16,8 +16,8 @@ import (
 type userIDCtxKey struct{}
 
 type UserHandler struct {
-	Logger     *logger.Logger
-	DaoFactory *dao.Factory
+	logger     *logger.Logger
+	daoFactory *dao.Factory
 }
 
 func (h *UserHandler) Routes() *chi.Mux {
@@ -32,7 +32,7 @@ func (h *UserHandler) Routes() *chi.Mux {
 }
 
 func (h *UserHandler) Find(rw http.ResponseWriter, r *http.Request) {
-	users, err := h.DaoFactory.GetUserDao().Find(r.Context(), dao.Where{})
+	users, err := h.daoFactory.GetUserDao().Find(r.Context(), dao.Where{})
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -55,7 +55,7 @@ func (h *UserHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	user, err := h.DaoFactory.GetUserDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
+	user, err := h.daoFactory.GetUserDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
@@ -76,7 +76,7 @@ func UserCtx(next http.Handler) http.Handler {
 
 func NewUserHandler(logger *logger.Logger, factory *dao.Factory) *UserHandler {
 	return &UserHandler{
-		Logger:     logger,
-		DaoFactory: factory,
+		logger:     logger,
+		daoFactory: factory,
 	}
 }
