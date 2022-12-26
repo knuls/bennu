@@ -23,19 +23,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type Config struct {
-	Service  ServiceConfig
-	Store    StoreConfig
-	Server   ServerConfig
-	Security SecurityConfig
+type config struct {
+	Service  serviceConfig
+	Store    storeConfig
+	Server   serverConfig
+	Security securityConfig
 }
 
-type ServiceConfig struct {
+type serviceConfig struct {
 	Name string
 	Port int
 }
 
-type StoreConfig struct {
+type storeConfig struct {
 	Client  string
 	Host    string
 	Port    int
@@ -43,7 +43,7 @@ type StoreConfig struct {
 	Timeout time.Duration
 }
 
-type ServerConfig struct {
+type serverConfig struct {
 	Timeout struct {
 		Read     time.Duration
 		Write    time.Duration
@@ -52,7 +52,7 @@ type ServerConfig struct {
 	}
 }
 
-type SecurityConfig struct {
+type securityConfig struct {
 	Allowed struct {
 		Origins []string
 		Methods []string
@@ -93,7 +93,7 @@ func main() {
 	c.BindEnv("security.allowed.headers")
 	c.BindEnv("security.allowCredentials")
 	c.AutomaticEnv()
-	var cfg Config
+	var cfg config
 	if err := c.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Fatalf("config file not found error: %v", err)

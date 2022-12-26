@@ -16,12 +16,12 @@ import (
 
 type organizationIDCtxKey struct{}
 
-type OrganizationHandler struct {
+type organizationHandler struct {
 	logger     *logger.Logger
 	daoFactory *dao.Factory
 }
 
-func (h *OrganizationHandler) Routes() *chi.Mux {
+func (h *organizationHandler) Routes() *chi.Mux {
 	mux := chi.NewRouter()
 	mux.Get("/", h.Find)    // GET /organization
 	mux.Post("/", h.Create) // POST /organization
@@ -33,7 +33,7 @@ func (h *OrganizationHandler) Routes() *chi.Mux {
 	return mux
 }
 
-func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
+func (h *organizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	orgs, err := h.daoFactory.GetOrganizationDao().Find(r.Context(), dao.Where{})
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
@@ -50,7 +50,7 @@ func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
+func (h *organizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	var org *models.Organization
 	defer r.Body.Close()
 	if err := org.FromJSON(r.Body); err != nil {
@@ -66,7 +66,7 @@ func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	render.Respond(rw, r, &res.JSON{"id": id})
 }
 
-func (h *OrganizationHandler) FindById(rw http.ResponseWriter, r *http.Request) {
+func (h *organizationHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(organizationIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -92,8 +92,8 @@ func OrganizationCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewOrganizationHandler(logger *logger.Logger, factory *dao.Factory) *OrganizationHandler {
-	return &OrganizationHandler{
+func NewOrganizationHandler(logger *logger.Logger, factory *dao.Factory) *organizationHandler {
+	return &organizationHandler{
 		logger:     logger,
 		daoFactory: factory,
 	}

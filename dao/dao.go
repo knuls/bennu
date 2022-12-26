@@ -9,15 +9,15 @@ import (
 
 type Where bson.D
 
-type Finder[T models.User | models.Organization | models.Token] interface {
+type finder[T models.User | models.Organization | models.Token] interface {
 	Find(ctx context.Context, filter Where) ([]*T, error)
 	FindOne(ctx context.Context, filter Where) (*T, error)
 }
 
-type Creater[T models.User | models.Organization | models.Token] interface {
+type creator[T models.User | models.Organization | models.Token] interface {
 	Create(ctx context.Context, t *T) (string, error)
 }
 
-type Updater[T models.User | models.Organization | models.Token] interface {
+type updater[T models.User | models.Organization | models.Token] interface {
 	Update(ctx context.Context, t *T) (*T, error)
 }

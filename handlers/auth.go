@@ -22,12 +22,12 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-type AuthHandler struct {
+type authHandler struct {
 	logger     *logger.Logger
 	daoFactory *dao.Factory
 }
 
-func (h *AuthHandler) Routes() *chi.Mux {
+func (h *authHandler) Routes() *chi.Mux {
 	mux := chi.NewRouter()
 	mux.Get("/csrf", h.CSRF)                     // GET /auth/csrf
 	mux.Post("/login", h.Login)                  // POST /auth/login
@@ -44,11 +44,11 @@ func (h *AuthHandler) Routes() *chi.Mux {
 	return mux
 }
 
-func (h *AuthHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	var payload *loginRequest
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	defer r.Body.Close()
@@ -86,7 +86,7 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	render.Respond(rw, r, &res.JSON{"token": "token"})
 }
 
-func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	var user *models.User
 	defer r.Body.Close()
 	if err := user.FromJSON(r.Body); err != nil {
@@ -115,28 +115,28 @@ func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	render.Respond(rw, r, &res.JSON{"id": id})
 }
 
-func (h *AuthHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func (h *AuthHandler) VerifyEmail(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) VerifyEmail(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func (h *AuthHandler) VerifyResetPassword(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) VerifyResetPassword(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func (h *AuthHandler) TokenRefresh(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) TokenRefresh(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func (h *AuthHandler) Logout(rw http.ResponseWriter, r *http.Request) {
+func (h *authHandler) Logout(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func NewAuthHandler(logger *logger.Logger, factory *dao.Factory) *AuthHandler {
-	return &AuthHandler{
+func NewAuthHandler(logger *logger.Logger, factory *dao.Factory) *authHandler {
+	return &authHandler{
 		logger:     logger,
 		daoFactory: factory,
 	}

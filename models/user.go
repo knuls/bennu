@@ -25,8 +25,8 @@ func (m *User) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (m *User) FromJSON(reader io.Reader) error {
-	err := json.NewDecoder(reader).Decode(&m)
+func (m *User) FromJSON(r io.Reader) error {
+	err := json.NewDecoder(r).Decode(&m)
 	if errors.Is(err, io.EOF) {
 		return err
 	}
