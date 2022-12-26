@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -31,4 +32,20 @@ func (m *User) FromJSON(r io.Reader) error {
 		return err
 	}
 	return err
+}
+
+func (m *User) HashPassword() error {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(m.Password), 14)
+	if err != nil {
+		return err
+	}
+	m.Password = string(bytes)
+	return nil
+}
+
+func (m *User) ComparePassword(p string) error {
+	if err := bcrypt.CompareHashAndPassword([]byte(m.Password), []byte(p)); err != nil {
+		return err
+	}
+	return nil
 }

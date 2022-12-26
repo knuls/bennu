@@ -14,7 +14,6 @@ import (
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type loginRequest struct {
@@ -49,8 +48,8 @@ func (h *authHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
-	var payload *loginRequest
-	err := json.NewDecoder(r.Body).Decode(&payload)
+	var body *loginRequest
+	err := json.NewDecoder(r.Body).Decode(&body)
 	defer r.Body.Close()
 	if errors.Is(err, io.EOF) {
 		render.Render(rw, r, res.ErrDecode(err))
@@ -63,7 +62,7 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	where := dao.Where{
 		{Key: "$and",
 			Value: bson.A{
-				bson.D{{Key: "email", Value: payload.Email}},
+				bson.D{{Key: "email", Value: body.Email}},
 				bson.D{{Key: "verified", Value: true}},
 			},
 		},
@@ -73,9 +72,8 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password))
-	if err != nil {
-		render.Render(rw, r, res.ErrNotFound(errors.New("invalid username or password")))
+	if err := user.ComparePassword(body.Password); err != nil {
+		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 
@@ -97,12 +95,10 @@ func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	user.Verified = false
 	user.CreatedAt = now
 	user.UpdatedAt = now
-	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
-	if err != nil {
+	if err := user.HashPassword(); err != nil {
 		render.Render(rw, r, res.Err(err, http.StatusInternalServerError))
 		return
 	}
-	user.Password = string(bytes)
 	id, err := h.daoFactory.GetUserDao().Create(r.Context(), user)
 	if err != nil {
 		render.Render(rw, r, res.ErrBadRequest(err))
