@@ -52,7 +52,7 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	var payload *loginRequest
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	defer r.Body.Close()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
@@ -88,13 +88,8 @@ func (h *AuthHandler) Login(rw http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	var user *models.User
-	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
-	if err == io.EOF {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-	if err != nil {
+	if err := user.FromJSON(r.Body); err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}

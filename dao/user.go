@@ -19,7 +19,7 @@ func (d *UserDao) Find(ctx context.Context, filter Where) ([]*models.User, error
 	var users []*models.User
 	cursor, err := d.users.Find(ctx, filter)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return users, nil
 		}
 		return nil, err
@@ -34,7 +34,7 @@ func (d *UserDao) FindOne(ctx context.Context, filter Where) (*models.User, erro
 	result := d.users.FindOne(ctx, filter)
 	err := result.Err()
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.New("no user found")
 		}
 		return nil, err

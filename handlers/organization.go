@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -54,13 +52,8 @@ func (h *OrganizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 
 func (h *OrganizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	var org *models.Organization
-	err := json.NewDecoder(r.Body).Decode(&org)
 	defer r.Body.Close()
-	if err == io.EOF {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-	if err != nil {
+	if err := org.FromJSON(r.Body); err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}

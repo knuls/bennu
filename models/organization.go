@@ -1,6 +1,9 @@
 package models
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -26,4 +29,12 @@ type OrganizationProfile struct {
 
 func (m *Organization) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
+}
+
+func (m *Organization) FromJSON(reader io.Reader) error {
+	err := json.NewDecoder(reader).Decode(&m)
+	if errors.Is(err, io.EOF) {
+		return err
+	}
+	return err
 }

@@ -19,7 +19,7 @@ func (d *OrganizationDao) Find(ctx context.Context, filter Where) ([]*models.Org
 	var orgs []*models.Organization
 	cursor, err := d.organizations.Find(ctx, filter)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return orgs, nil
 		}
 		return nil, err
@@ -34,7 +34,7 @@ func (d *OrganizationDao) FindOne(ctx context.Context, filter Where) (*models.Or
 	result := d.organizations.FindOne(ctx, filter)
 	err := result.Err()
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.New("no org found")
 		}
 		return nil, err
