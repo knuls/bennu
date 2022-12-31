@@ -55,7 +55,6 @@ func (d *OrganizationDao) Create(ctx context.Context, org *models.Organization) 
 	if len(exists) > 0 {
 		return "", errors.New("name exists")
 	}
-	// TODO: check if user id is valid ACTIVE user ?
 	now := time.Now()
 	org.CreatedAt = now
 	org.UpdatedAt = now

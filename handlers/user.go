@@ -34,6 +34,7 @@ func (h *userHandler) Routes() *chi.Mux {
 func (h *userHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	users, err := h.daoFactory.GetUserDao().Find(r.Context(), dao.Where{})
 	if err != nil {
+		h.logger.Error("failed to find users", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -43,6 +44,7 @@ func (h *userHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	}
 	render.Status(r, http.StatusOK)
 	if err := render.Render(rw, r, &res.JSON{"users": renders}); err != nil {
+		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}
@@ -52,16 +54,19 @@ func (h *userHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(userIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		h.logger.Error("failed to convert hex to object id", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	user, err := h.daoFactory.GetUserDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
 	if err != nil {
+		h.logger.Error("failed to find user", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	render.Status(r, http.StatusOK)
 	if err := render.Render(rw, r, &res.JSON{"user": user}); err != nil {
+		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}

@@ -36,6 +36,7 @@ func (h *organizationHandler) Routes() *chi.Mux {
 func (h *organizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 	orgs, err := h.daoFactory.GetOrganizationDao().Find(r.Context(), dao.Where{})
 	if err != nil {
+		h.logger.Error("failed to find organizations", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -44,7 +45,8 @@ func (h *organizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 		renders = append(renders, org)
 	}
 	render.Status(r, http.StatusOK)
-	if err := render.Render(rw, r, &res.JSON{"organizations": renders}); err != nil {
+	if err = render.Render(rw, r, &res.JSON{"organizations": renders}); err != nil {
+		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}
@@ -54,32 +56,39 @@ func (h *organizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	org := models.NewOrganization()
 	defer r.Body.Close()
 	if err := org.FromJSON(r.Body); err != nil {
+		h.logger.Error("failed to decode request body", "error", err)
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
 	id, err := h.daoFactory.GetOrganizationDao().Create(r.Context(), org)
 	if err != nil {
+		h.logger.Error("failed to create organization", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	render.Status(r, http.StatusCreated)
-	render.Respond(rw, r, &res.JSON{"id": id})
+	if err = render.Render(rw, r, &res.JSON{"id": id}); err != nil {
+		h.logger.Error("failed to render", "error", err)
+	}
 }
 
 func (h *organizationHandler) FindById(rw http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(organizationIDCtxKey{}).(string)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		h.logger.Error("failed to convert hex to object id", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	org, err := h.daoFactory.GetOrganizationDao().FindOne(r.Context(), dao.Where{{Key: "_id", Value: oid}})
 	if err != nil {
+		h.logger.Error("failed to find organization", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	render.Status(r, http.StatusOK)
 	if err := render.Render(rw, r, &res.JSON{"organization": org}); err != nil {
+		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}

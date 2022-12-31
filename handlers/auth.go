@@ -50,11 +50,13 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	var body *loginRequest
 	err := json.NewDecoder(r.Body).Decode(&body)
 	defer r.Body.Close()
-	if errors.Is(err, io.EOF) {
-		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			h.logger.Error("failed to decode empty request body", "error", err)
+			render.Render(rw, r, res.ErrDecode(err))
+			return
+		}
+		h.logger.Error("failed to decode request body", "error", err)
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
@@ -68,10 +70,12 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.daoFactory.GetUserDao().FindOne(r.Context(), where)
 	if err != nil {
+		h.logger.Error("failed to find user", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	if err := user.ComparePassword(body.Password); err != nil {
+		h.logger.Error("failed to compare user password", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -80,18 +84,22 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	// TODO: set access token in resp & refresh token in cookie
 
 	render.Status(r, http.StatusOK)
-	render.Respond(rw, r, &res.JSON{"token": "token"})
+	if err = render.Render(rw, r, &res.JSON{"token": "token"}); err != nil {
+		h.logger.Error("failed to render", "error", err)
+	}
 }
 
 func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	user := models.NewUser()
 	defer r.Body.Close()
 	if err := user.FromJSON(r.Body); err != nil {
+		h.logger.Error("failed to decode request body", "error", err)
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
 	id, err := h.daoFactory.GetUserDao().Create(r.Context(), user)
 	if err != nil {
+		h.logger.Error("failed to create user", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
@@ -99,7 +107,9 @@ func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	// TODO: create token & send verify email with token
 
 	render.Status(r, http.StatusCreated)
-	render.Respond(rw, r, &res.JSON{"id": id})
+	if err = render.Render(rw, r, &res.JSON{"id": id}); err != nil {
+		h.logger.Error("failed to render", "error", err)
+	}
 }
 
 func (h *authHandler) ResetPassword(rw http.ResponseWriter, r *http.Request) {
