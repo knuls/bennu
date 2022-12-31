@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/handlers"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
@@ -22,19 +23,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type Config struct {
-	Service  ServiceConfig
-	Store    StoreConfig
-	Server   ServerConfig
-	Security SecurityConfig
+type config struct {
+	Service  serviceConfig
+	Store    storeConfig
+	Server   serverConfig
+	Security securityConfig
 }
 
-type ServiceConfig struct {
+type serviceConfig struct {
 	Name string
 	Port int
 }
 
-type StoreConfig struct {
+type storeConfig struct {
 	Client  string
 	Host    string
 	Port    int
@@ -42,7 +43,7 @@ type StoreConfig struct {
 	Timeout time.Duration
 }
 
-type ServerConfig struct {
+type serverConfig struct {
 	Timeout struct {
 		Read     time.Duration
 		Write    time.Duration
@@ -51,7 +52,7 @@ type ServerConfig struct {
 	}
 }
 
-type SecurityConfig struct {
+type securityConfig struct {
 	Allowed struct {
 		Origins []string
 		Methods []string
@@ -92,17 +93,19 @@ func main() {
 	c.BindEnv("security.allowed.headers")
 	c.BindEnv("security.allowCredentials")
 	c.AutomaticEnv()
-	var cfg Config
+	var cfg config
 	if err := c.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("config file not found error: %v", err)
+			log.Error("config file not found", "error", err)
 		} else {
-			log.Fatalf("config file read error: %v", err)
+			log.Error("config file read", "error", err)
 		}
+		return
 	}
 	err = c.Unmarshal(&cfg)
 	if err != nil {
-		log.Fatalf("config decode error: %v", err)
+		log.Error("config decode error", "error", err)
+		return
 	}
 
 	// db
@@ -111,17 +114,20 @@ func main() {
 	uri := fmt.Sprintf("%s://%s:%d", cfg.Store.Client, cfg.Store.Host, cfg.Store.Port)
 	client, err := mongo.Connect(dbCtx, options.Client().ApplyURI(uri))
 	if err != nil {
-		log.Fatalf("db connect error: %v", err)
+		log.Error("db connect", "error", err)
+		return
 	}
 	defer func() {
 		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatalf("db disconnect error: %v", err)
+			log.Error("db disconnect", "error", err)
+			return
 		}
 	}()
 	pingCtx, cancel := context.WithTimeout(context.Background(), cfg.Store.Timeout*time.Second)
 	defer cancel()
 	if err = client.Ping(pingCtx, readpref.Primary()); err != nil {
-		log.Fatalf("db ping error: %v", err)
+		log.Error("db ping error: %v", err)
+		return
 	}
 
 	// mux
@@ -143,14 +149,18 @@ func main() {
 	// validator
 	v, err := validator.New()
 	if err != nil {
-		log.Fatalf("validator new error: %s", err.Error())
+		log.Error("validator new", "error", err)
+		return
 	}
 
-	// handlers
+	// factory
 	db := client.Database(cfg.Store.Name)
-	mux.Mount("/user", handlers.NewUserHandler(log, v, db).Routes())
-	mux.Mount("/organization", handlers.NewOrganizationHandler(log, v, db).Routes())
-	mux.Mount("/auth", handlers.NewAuthHandler(log, v, db).Routes())
+	factory := dao.NewFactory(db, v)
+
+	// handlers
+	mux.Mount("/user", handlers.NewUserHandler(log, factory).Routes())
+	mux.Mount("/organization", handlers.NewOrganizationHandler(log, factory).Routes())
+	mux.Mount("/auth", handlers.NewAuthHandler(log, factory).Routes())
 
 	// server
 	srv := &http.Server{
@@ -165,14 +175,15 @@ func main() {
 	// listen
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatalf("listen and serve error: %s", err.Error())
+			log.Error("listen and serve", "error", err)
+			return
 		}
 	}()
 	log.Infof("starting %s service on port: %d", cfg.Service.Name, cfg.Service.Port)
 
 	// shutdown
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM, os.Kill)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	sig := <-sigCh
 	log.Infof("signal: %s", sig.String())
 
@@ -180,6 +191,7 @@ func main() {
 	defer cancel()
 	err = srv.Shutdown(shutdownCtx)
 	if err != nil {
-		log.Fatalf("shutdown error: %s", err.Error())
+		log.Error("shutdown", "error", err)
+		return
 	}
 }
