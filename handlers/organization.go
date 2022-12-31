@@ -51,7 +51,7 @@ func (h *organizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *organizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
-	var org *models.Organization
+	org := models.NewOrganization()
 	defer r.Body.Close()
 	if err := org.FromJSON(r.Body); err != nil {
 		render.Render(rw, r, res.ErrDecode(err))

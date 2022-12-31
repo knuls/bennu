@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/validator"
@@ -47,15 +48,22 @@ func (d *UserDao) FindOne(ctx context.Context, filter Where) (*models.User, erro
 }
 
 func (d *UserDao) Create(ctx context.Context, user *models.User) (string, error) {
-	if err := d.validator.ValidateStruct(user); err != nil {
-		return "", err
-	}
 	exists, err := d.Find(ctx, Where{{Key: "email", Value: user.Email}})
 	if err != nil {
 		return "", err
 	}
 	if len(exists) > 0 {
 		return "", errors.New("email exists")
+	}
+	if err := user.HashPassword(); err != nil {
+		return "", err
+	}
+	now := time.Now()
+	user.Verified = false
+	user.CreatedAt = now
+	user.UpdatedAt = now
+	if err := d.validator.ValidateStruct(user); err != nil {
+		return "", err
 	}
 	result, err := d.users.InsertOne(ctx, user)
 	if err != nil {

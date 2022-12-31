@@ -12,7 +12,7 @@ import (
 )
 
 type User struct {
-	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Email     string             `json:"email" bson:"email" validate:"required,email"`
 	FirstName string             `json:"firstName" bson:"firstName" validate:"required"`
 	LastName  string             `json:"lastName" bson:"lastName" validate:"required"`
@@ -27,7 +27,7 @@ func (m *User) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (m *User) FromJSON(r io.Reader) error {
-	err := json.NewDecoder(r).Decode(&m)
+	err := json.NewDecoder(r).Decode(m)
 	if errors.Is(err, io.EOF) {
 		return err
 	}
@@ -48,4 +48,8 @@ func (m *User) ComparePassword(p string) error {
 		return err
 	}
 	return nil
+}
+
+func NewUser() *User {
+	return &User{}
 }

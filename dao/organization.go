@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/validator"
@@ -47,15 +48,19 @@ func (d *OrganizationDao) FindOne(ctx context.Context, filter Where) (*models.Or
 }
 
 func (d *OrganizationDao) Create(ctx context.Context, org *models.Organization) (string, error) {
-	if err := d.validator.ValidateStruct(org); err != nil {
-		return "", err
-	}
 	exists, err := d.Find(ctx, Where{{Key: "name", Value: org.Name}})
 	if err != nil {
 		return "", err
 	}
 	if len(exists) > 0 {
 		return "", errors.New("name exists")
+	}
+	// TODO: check if user id is valid ACTIVE user ?
+	now := time.Now()
+	org.CreatedAt = now
+	org.UpdatedAt = now
+	if err := d.validator.ValidateStruct(org); err != nil {
+		return "", err
 	}
 	result, err := d.organizations.InsertOne(ctx, org)
 	if err != nil {

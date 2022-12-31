@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -85,18 +84,10 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
-	var user *models.User
+	user := models.NewUser()
 	defer r.Body.Close()
 	if err := user.FromJSON(r.Body); err != nil {
 		render.Render(rw, r, res.ErrDecode(err))
-		return
-	}
-	now := time.Now()
-	user.Verified = false
-	user.CreatedAt = now
-	user.UpdatedAt = now
-	if err := user.HashPassword(); err != nil {
-		render.Render(rw, r, res.Err(err, http.StatusInternalServerError))
 		return
 	}
 	id, err := h.daoFactory.GetUserDao().Create(r.Context(), user)
