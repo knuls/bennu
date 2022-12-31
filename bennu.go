@@ -96,14 +96,16 @@ func main() {
 	var cfg config
 	if err := c.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("config file not found error: %v", err)
+			log.Error("config file not found", "error", err)
 		} else {
-			log.Fatalf("config file read error: %v", err)
+			log.Error("config file read", "error", err)
 		}
+		return
 	}
 	err = c.Unmarshal(&cfg)
 	if err != nil {
-		log.Fatalf("config decode error: %v", err)
+		log.Error("config decode error", "error", err)
+		return
 	}
 
 	// db
@@ -112,17 +114,20 @@ func main() {
 	uri := fmt.Sprintf("%s://%s:%d", cfg.Store.Client, cfg.Store.Host, cfg.Store.Port)
 	client, err := mongo.Connect(dbCtx, options.Client().ApplyURI(uri))
 	if err != nil {
-		log.Fatalf("db connect error: %v", err)
+		log.Error("db connect", "error", err)
+		return
 	}
 	defer func() {
 		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatalf("db disconnect error: %v", err)
+			log.Error("db disconnect", "error", err)
+			return
 		}
 	}()
 	pingCtx, cancel := context.WithTimeout(context.Background(), cfg.Store.Timeout*time.Second)
 	defer cancel()
 	if err = client.Ping(pingCtx, readpref.Primary()); err != nil {
-		log.Fatalf("db ping error: %v", err)
+		log.Error("db ping error: %v", err)
+		return
 	}
 
 	// mux
@@ -144,7 +149,8 @@ func main() {
 	// validator
 	v, err := validator.New()
 	if err != nil {
-		log.Fatalf("validator new error: %s", err.Error())
+		log.Error("validator new", "error", err)
+		return
 	}
 
 	// factory
@@ -169,7 +175,8 @@ func main() {
 	// listen
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatalf("listen and serve error: %s", err.Error())
+			log.Error("listen and serve", "error", err)
+			return
 		}
 	}()
 	log.Infof("starting %s service on port: %d", cfg.Service.Name, cfg.Service.Port)
@@ -184,6 +191,7 @@ func main() {
 	defer cancel()
 	err = srv.Shutdown(shutdownCtx)
 	if err != nil {
-		log.Fatalf("shutdown error: %s", err.Error())
+		log.Error("shutdown", "error", err)
+		return
 	}
 }
