@@ -17,7 +17,7 @@ type userIDCtxKey struct{}
 
 type userHandler struct {
 	logger     *logger.Logger
-	daoFactory *dao.Factory
+	daoFactory dao.Factory
 }
 
 func (h *userHandler) Routes() *chi.Mux {
@@ -79,7 +79,7 @@ func UserCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewUserHandler(logger *logger.Logger, factory *dao.Factory) *userHandler {
+func NewUserHandler(logger *logger.Logger, factory dao.Factory) *userHandler {
 	return &userHandler{
 		logger:     logger,
 		daoFactory: factory,

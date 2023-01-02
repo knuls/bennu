@@ -17,8 +17,9 @@ import (
 type organizationIDCtxKey struct{}
 
 type organizationHandler struct {
-	logger     *logger.Logger
-	daoFactory *dao.Factory
+	logger *logger.Logger
+	// this has to be an interface !!
+	daoFactory *dao.DaoFactory
 }
 
 func (h *organizationHandler) Routes() *chi.Mux {
@@ -101,7 +102,7 @@ func OrganizationCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewOrganizationHandler(logger *logger.Logger, factory *dao.Factory) *organizationHandler {
+func NewOrganizationHandler(logger *logger.Logger, factory *dao.DaoFactory) *organizationHandler {
 	return &organizationHandler{
 		logger:     logger,
 		daoFactory: factory,

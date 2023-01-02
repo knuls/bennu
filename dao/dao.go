@@ -15,7 +15,7 @@ const (
 
 type Where bson.D
 
-type dao[T models.User | models.Organization | models.Token] interface {
+type Dao[T models.User | models.Organization | models.Token] interface {
 	finder[T]
 	creator[T]
 	updater[T]

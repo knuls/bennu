@@ -155,7 +155,7 @@ func main() {
 
 	// factory
 	db := client.Database(cfg.Store.Name)
-	factory := dao.NewFactory(db, v)
+	factory := dao.NewDaoFactory(db, v)
 
 	// handlers
 	mux.Mount("/user", handlers.NewUserHandler(log, factory).Routes())
