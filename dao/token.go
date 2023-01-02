@@ -10,8 +10,8 @@ import (
 )
 
 type TokenDao struct {
-	tokens    *mongo.Collection
 	validator *validator.Validator
+	tokens    *mongo.Collection
 }
 
 func (d *TokenDao) Find(ctx context.Context, filter Where) ([]*models.Token, error) {
@@ -30,9 +30,9 @@ func (d *TokenDao) Update(ctx context.Context, token *models.Token) (*models.Tok
 	return nil, errors.New("no impl")
 }
 
-func NewTokenDao(tokens *mongo.Collection, validator *validator.Validator) *TokenDao {
+func NewTokenDao(db *mongo.Database, validator *validator.Validator) *TokenDao {
 	return &TokenDao{
-		tokens:    tokens,
 		validator: validator,
+		tokens:    db.Collection(tokensCollectionName),
 	}
 }

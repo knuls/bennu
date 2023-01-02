@@ -7,7 +7,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+const (
+	usersCollectionName         = "users"
+	organizationsCollectionName = "organizations"
+	tokensCollectionName        = "tokens"
+)
+
 type Where bson.D
+
+type dao[T models.User | models.Organization | models.Token] interface {
+	finder[T]
+	creator[T]
+	updater[T]
+}
 
 type finder[T models.User | models.Organization | models.Token] interface {
 	Find(ctx context.Context, filter Where) ([]*T, error)

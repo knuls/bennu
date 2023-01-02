@@ -12,8 +12,8 @@ import (
 )
 
 type UserDao struct {
-	users     *mongo.Collection
 	validator *validator.Validator
+	users     *mongo.Collection
 }
 
 func (d *UserDao) Find(ctx context.Context, filter Where) ([]*models.User, error) {
@@ -76,9 +76,9 @@ func (d *UserDao) Update(ctx context.Context, user *models.User) (*models.User, 
 	return nil, errors.New("no impl")
 }
 
-func NewUserDao(users *mongo.Collection, validator *validator.Validator) *UserDao {
+func NewUserDao(db *mongo.Database, validator *validator.Validator) *UserDao {
 	return &UserDao{
-		users:     users,
 		validator: validator,
+		users:     db.Collection(usersCollectionName),
 	}
 }

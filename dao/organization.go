@@ -12,8 +12,8 @@ import (
 )
 
 type OrganizationDao struct {
-	organizations *mongo.Collection
 	validator     *validator.Validator
+	organizations *mongo.Collection
 }
 
 func (d *OrganizationDao) Find(ctx context.Context, filter Where) ([]*models.Organization, error) {
@@ -72,9 +72,9 @@ func (d *OrganizationDao) Update(ctx context.Context, org *models.Organization) 
 	return nil, errors.New("no impl")
 }
 
-func NewOrganizationDao(orgs *mongo.Collection, validator *validator.Validator) *OrganizationDao {
+func NewOrganizationDao(db *mongo.Database, validator *validator.Validator) *OrganizationDao {
 	return &OrganizationDao{
-		organizations: orgs,
 		validator:     validator,
+		organizations: db.Collection(organizationsCollectionName),
 	}
 }
