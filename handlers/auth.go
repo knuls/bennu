@@ -22,7 +22,7 @@ type loginRequest struct {
 
 type authHandler struct {
 	logger     *logger.Logger
-	daoFactory *dao.DaoFactory
+	daoFactory dao.Factory
 }
 
 func (h *authHandler) Routes() *chi.Mux {
@@ -132,7 +132,7 @@ func (h *authHandler) Logout(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func NewAuthHandler(logger *logger.Logger, factory *dao.DaoFactory) *authHandler {
+func NewAuthHandler(logger *logger.Logger, factory dao.Factory) *authHandler {
 	return &authHandler{
 		logger:     logger,
 		daoFactory: factory,

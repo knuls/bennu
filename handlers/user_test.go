@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,34 @@ import (
 	"github.com/knuls/horus/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// TODO: move this to dao
+type MockFactory struct {
+}
+
+func (f *MockFactory) GetUserDao() dao.Dao[models.User] {
+	return &MockUserDao{}
+}
+func (f *MockFactory) GetOrganizationDao() dao.Dao[models.Organization] {
+	return &MockOrganizationDao{}
+}
+func (f *MockFactory) GetTokenDao() dao.Dao[models.Token] {
+	return &MockTokenDao{}
+}
+
+// TODO: move this to dao
+type MockErrFactory struct {
+}
+
+func (f *MockErrFactory) GetUserDao() dao.Dao[models.User] {
+	return &MockErrUserDao{}
+}
+func (f *MockErrFactory) GetOrganizationDao() dao.Dao[models.Organization] {
+	return &MockErrOrganizationDao{}
+}
+func (f *MockErrFactory) GetTokenDao() dao.Dao[models.Token] {
+	return &MockErrTockenDao{}
+}
 
 type MockUserDao struct {
 }
@@ -37,19 +66,6 @@ func (m *MockUserDao) Update(ctx context.Context, user *models.User) (*models.Us
 	return nil, nil
 }
 
-type MockFactory struct {
-}
-
-func (f *MockFactory) GetUserDao() dao.Dao[models.User] {
-	return &MockUserDao{}
-}
-func (f *MockFactory) GetOrganizationDao() dao.Dao[models.Organization] {
-	return nil
-}
-func (f *MockFactory) GetTokenDao() dao.Dao[models.Token] {
-	return nil
-}
-
 type MockErrUserDao struct {
 }
 
@@ -66,24 +82,13 @@ func (m *MockErrUserDao) Update(ctx context.Context, user *models.User) (*models
 	return nil, nil
 }
 
-type MockErrFactory struct {
-}
-
-func (f *MockErrFactory) GetUserDao() dao.Dao[models.User] {
-	return &MockErrUserDao{}
-}
-func (f *MockErrFactory) GetOrganizationDao() dao.Dao[models.Organization] {
-	return nil
-}
-func (f *MockErrFactory) GetTokenDao() dao.Dao[models.Token] {
-	return nil
-}
-
 type testCase struct {
 	factory            dao.Factory
 	method             string
 	path               string
+	body               map[string]interface{}
 	expectedStatusCode int
+	expectedBody       string
 }
 
 func TestUserHandler(t *testing.T) {
@@ -123,7 +128,11 @@ func TestUserHandler(t *testing.T) {
 
 	for _, testCase := range cases {
 		handler := NewUserHandler(logger, testCase.factory)
-		req := httptest.NewRequest(testCase.method, testCase.path, nil)
+		body, err := json.Marshal(testCase.body)
+		if err != nil {
+			t.Error(err)
+		}
+		req := httptest.NewRequest(testCase.method, testCase.path, bytes.NewReader(body))
 		rr := httptest.NewRecorder()
 		handler.Routes().ServeHTTP(rr, req)
 		res := rr.Result()

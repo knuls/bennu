@@ -15,3 +15,7 @@ type Token struct {
 	CreatedAt time.Time          `json:"createdAt" bson:"createdAt" validate:"required"`
 	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt" validate:"required"`
 }
+
+func NewToken() *Token {
+	return &Token{}
+}
