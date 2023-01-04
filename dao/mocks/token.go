@@ -33,13 +33,13 @@ type ErrTockenDao struct {
 }
 
 func (m *ErrTockenDao) Find(ctx context.Context, filter dao.Where) ([]*models.Token, error) {
-	return nil, errors.New("some error")
+	return nil, errors.New("some mock error")
 }
 func (m *ErrTockenDao) FindOne(ctx context.Context, filter dao.Where) (*models.Token, error) {
-	return nil, errors.New("some error")
+	return nil, errors.New("some mock error")
 }
 func (m *ErrTockenDao) Create(ctx context.Context, token *models.Token) (string, error) {
-	return "", errors.New("some error")
+	return "", errors.New("some mock error")
 }
 func (m *ErrTockenDao) Update(ctx context.Context, token *models.Token) (*models.Token, error) {
 	return nil, nil

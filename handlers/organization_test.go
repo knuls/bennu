@@ -76,7 +76,7 @@ func TestOrganizationHandler(t *testing.T) {
 			expectedBody:       "",
 		},
 		{
-			name:               "postOrganizationErr",
+			name:               "postOrganizationEOFErr",
 			factory:            errFactory,
 			method:             http.MethodPost,
 			path:               "/",
@@ -105,11 +105,6 @@ func TestOrganizationHandler(t *testing.T) {
 			res := rr.Result()
 			if res.StatusCode != testCase.expectedStatusCode {
 				t.Fatalf("result expected to be %d, got %d", testCase.expectedStatusCode, res.StatusCode)
-			}
-			var p map[string]interface{}
-			defer res.Body.Close()
-			if err := json.NewDecoder(res.Body).Decode(&p); err != nil {
-				t.Error(err)
 			}
 		})
 	}

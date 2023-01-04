@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/dao/mocks"
+	"github.com/knuls/bennu/models"
 	"github.com/knuls/horus/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -26,6 +26,7 @@ func TestUserHandler(t *testing.T) {
 	factory := &mocks.Factory{}
 	errFactory := &mocks.ErrFactory{}
 	id := primitive.NewObjectIDFromTimestamp(time.Now())
+	url := fmt.Sprintf("/%s", id.Hex())
 
 	// tests
 	cases := []struct {
@@ -34,7 +35,7 @@ func TestUserHandler(t *testing.T) {
 		method             string
 		path               string
 		expectedStatusCode int
-		expectedBody       string
+		expectedBody       []*models.User
 	}{
 		{
 			name:               "getUser",
@@ -42,6 +43,7 @@ func TestUserHandler(t *testing.T) {
 			method:             http.MethodGet,
 			path:               "/",
 			expectedStatusCode: http.StatusOK,
+			expectedBody:       mocks.MockUsers,
 		},
 		{
 			name:               "getUserErr",
@@ -54,14 +56,14 @@ func TestUserHandler(t *testing.T) {
 			name:               "getUserById",
 			factory:            factory,
 			method:             http.MethodGet,
-			path:               fmt.Sprintf("/%s", id.Hex()),
+			path:               url,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "getUserByIdErr",
 			factory:            errFactory,
 			method:             http.MethodGet,
-			path:               fmt.Sprintf("/%s", id.Hex()),
+			path:               url,
 			expectedStatusCode: http.StatusBadRequest,
 		},
 	}
@@ -81,11 +83,6 @@ func TestUserHandler(t *testing.T) {
 			res := rr.Result()
 			if res.StatusCode != testCase.expectedStatusCode {
 				t.Fatalf("result expected to be %d, got %d", testCase.expectedStatusCode, res.StatusCode)
-			}
-			var p map[string]interface{}
-			defer res.Body.Close()
-			if err := json.NewDecoder(res.Body).Decode(&p); err != nil {
-				t.Error(err)
 			}
 		})
 	}

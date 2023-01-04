@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/knuls/bennu/config"
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/handlers"
 	"github.com/knuls/horus/logger"
@@ -22,44 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
-
-type config struct {
-	Service  serviceConfig
-	Store    storeConfig
-	Server   serverConfig
-	Security securityConfig
-}
-
-type serviceConfig struct {
-	Name string
-	Port int
-}
-
-type storeConfig struct {
-	Client  string
-	Host    string
-	Port    int
-	Name    string
-	Timeout time.Duration
-}
-
-type serverConfig struct {
-	Timeout struct {
-		Read     time.Duration
-		Write    time.Duration
-		Idle     time.Duration
-		Shutdown time.Duration
-	}
-}
-
-type securityConfig struct {
-	Allowed struct {
-		Origins []string
-		Methods []string
-		Headers []string
-	}
-	AllowCredentials bool
-}
 
 func main() {
 	// logger
@@ -92,8 +55,9 @@ func main() {
 	c.BindEnv("security.allowed.methods")
 	c.BindEnv("security.allowed.headers")
 	c.BindEnv("security.allowCredentials")
+	c.BindEnv("auth.csrf")
 	c.AutomaticEnv()
-	var cfg config
+	var cfg *config.Config
 	if err := c.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Error("config file not found", "error", err)
@@ -160,7 +124,7 @@ func main() {
 	// handlers
 	mux.Mount("/user", handlers.NewUserHandler(log, factory).Routes())
 	mux.Mount("/organization", handlers.NewOrganizationHandler(log, factory).Routes())
-	mux.Mount("/auth", handlers.NewAuthHandler(log, factory).Routes())
+	mux.Mount("/auth", handlers.NewAuthHandler(log, factory, cfg).Routes())
 
 	// server
 	srv := &http.Server{

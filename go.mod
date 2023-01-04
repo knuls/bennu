@@ -12,6 +12,7 @@ require (
 	github.com/spf13/viper v1.14.0
 	go.mongodb.org/mongo-driver v1.11.1
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
 )
 
 require (
