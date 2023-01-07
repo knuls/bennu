@@ -6,19 +6,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/knuls/bennu/config"
+	"github.com/knuls/bennu/app"
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/handlers"
+	"github.com/knuls/horus/config"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/validator"
-	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -34,41 +33,16 @@ func main() {
 	defer log.GetLogger().Sync()
 
 	// config
-	c := viper.New()
-	c.AddConfigPath(".")
-	c.SetConfigName("config")
-	c.SetConfigType("yaml")
-	c.SetEnvPrefix("bennu")
-	c.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	c.BindEnv("service.name")
-	c.BindEnv("service.port")
-	c.BindEnv("store.client")
-	c.BindEnv("store.host")
-	c.BindEnv("store.port")
-	c.BindEnv("store.timeout")
-	c.BindEnv("store.name")
-	c.BindEnv("server.timeout.read")
-	c.BindEnv("server.timeout.write")
-	c.BindEnv("server.timeout.idle")
-	c.BindEnv("server.timeout.shutdown")
-	c.BindEnv("security.allowed.origins")
-	c.BindEnv("security.allowed.methods")
-	c.BindEnv("security.allowed.headers")
-	c.BindEnv("security.allowCredentials")
-	c.BindEnv("auth.csrf")
-	c.AutomaticEnv()
-	var cfg *config.Config
-	if err := c.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Error("config file not found", "error", err)
-		} else {
-			log.Error("config file read", "error", err)
-		}
+	c, err := config.New("bennu")
+	if err != nil {
+		log.Error("config new", "error", err)
 		return
 	}
-	err = c.Unmarshal(&cfg)
-	if err != nil {
-		log.Error("config decode error", "error", err)
+	c.SetFile(".", "config", "yaml")
+	c.SetBindings(app.Bindings)
+	var cfg *app.Config
+	if err := c.Load(&cfg); err != nil {
+		log.Error("config load", "error", err)
 		return
 	}
 
@@ -90,9 +64,20 @@ func main() {
 	pingCtx, cancel := context.WithTimeout(context.Background(), cfg.Store.Timeout*time.Second)
 	defer cancel()
 	if err = client.Ping(pingCtx, readpref.Primary()); err != nil {
-		log.Error("db ping error: %v", err)
+		log.Error("db ping", "error", err)
 		return
 	}
+
+	// validator
+	v, err := validator.New()
+	if err != nil {
+		log.Error("validator new", "error", err)
+		return
+	}
+
+	// dao factory
+	db := client.Database(cfg.Store.Name)
+	factory := dao.NewDaoFactory(db, v)
 
 	// mux
 	mux := chi.NewRouter()
@@ -109,17 +94,6 @@ func main() {
 	mux.Use(middlewares.RequestID)
 	mux.Use(middlewares.Recoverer)
 	mux.Use(middlewares.Logger(log))
-
-	// validator
-	v, err := validator.New()
-	if err != nil {
-		log.Error("validator new", "error", err)
-		return
-	}
-
-	// factory
-	db := client.Database(cfg.Store.Name)
-	factory := dao.NewDaoFactory(db, v)
 
 	// handlers
 	mux.Mount("/user", handlers.NewUserHandler(log, factory).Routes())

@@ -4,6 +4,5 @@ import (
 	"testing"
 )
 
-func TestFactory(t *testing.T) {
-
+func TestDaoFactory(t *testing.T) {
 }

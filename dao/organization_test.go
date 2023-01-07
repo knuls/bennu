@@ -5,5 +5,4 @@ import (
 )
 
 func TestOrganizationDao(t *testing.T) {
-
 }
