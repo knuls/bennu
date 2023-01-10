@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/knuls/bennu/dao"
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/organizations"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/res"
@@ -53,7 +53,7 @@ func (h *organizationHandler) Find(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *organizationHandler) Create(rw http.ResponseWriter, r *http.Request) {
-	org := models.NewOrganization()
+	org := organizations.NewOrganization()
 	defer r.Body.Close()
 	if err := org.FromJSON(r.Body); err != nil {
 		h.logger.Error("failed to decode request body", "error", err)

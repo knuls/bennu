@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/knuls/bennu/dao"
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/organizations"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var MockOrgs = []*models.Organization{
+var MockOrgs = []*organizations.Organization{
 	{
 		ID:        primitive.NewObjectIDFromTimestamp(time.Now()),
 		Name:      "Org1",
@@ -37,31 +37,31 @@ var MockOrgs = []*models.Organization{
 type OrganizationDao struct {
 }
 
-func (m *OrganizationDao) Find(ctx context.Context, filter dao.Where) ([]*models.Organization, error) {
+func (m *OrganizationDao) Find(ctx context.Context, filter dao.Where) ([]*organizations.Organization, error) {
 	return MockOrgs, nil
 }
-func (m *OrganizationDao) FindOne(ctx context.Context, filter dao.Where) (*models.Organization, error) {
+func (m *OrganizationDao) FindOne(ctx context.Context, filter dao.Where) (*organizations.Organization, error) {
 	return MockOrgs[0], nil
 }
-func (m *OrganizationDao) Create(ctx context.Context, org *models.Organization) (string, error) {
+func (m *OrganizationDao) Create(ctx context.Context, org *organizations.Organization) (string, error) {
 	return "", nil
 }
-func (m *OrganizationDao) Update(ctx context.Context, org *models.Organization) (*models.Organization, error) {
+func (m *OrganizationDao) Update(ctx context.Context, org *organizations.Organization) (*organizations.Organization, error) {
 	return nil, nil
 }
 
 type ErrOrganizationDao struct {
 }
 
-func (m *ErrOrganizationDao) Find(ctx context.Context, filter dao.Where) ([]*models.Organization, error) {
+func (m *ErrOrganizationDao) Find(ctx context.Context, filter dao.Where) ([]*organizations.Organization, error) {
 	return nil, errors.New("some mock error")
 }
-func (m *ErrOrganizationDao) FindOne(ctx context.Context, filter dao.Where) (*models.Organization, error) {
+func (m *ErrOrganizationDao) FindOne(ctx context.Context, filter dao.Where) (*organizations.Organization, error) {
 	return nil, errors.New("some mock error")
 }
-func (m *ErrOrganizationDao) Create(ctx context.Context, org *models.Organization) (string, error) {
+func (m *ErrOrganizationDao) Create(ctx context.Context, org *organizations.Organization) (string, error) {
 	return "", errors.New("some mock error")
 }
-func (m *ErrOrganizationDao) Update(ctx context.Context, org *models.Organization) (*models.Organization, error) {
+func (m *ErrOrganizationDao) Update(ctx context.Context, org *organizations.Organization) (*organizations.Organization, error) {
 	return nil, nil
 }
