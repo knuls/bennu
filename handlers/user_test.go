@@ -9,7 +9,7 @@ import (
 
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/dao/mocks"
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -35,7 +35,7 @@ func TestUserHandler(t *testing.T) {
 		method             string
 		path               string
 		expectedStatusCode int
-		expectedBody       []*models.User
+		expectedBody       []*users.User
 	}{
 		{
 			name:               "getUser",

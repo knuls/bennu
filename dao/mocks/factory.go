@@ -3,12 +3,13 @@ package mocks
 import (
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/users"
 )
 
 type Factory struct {
 }
 
-func (f *Factory) GetUserDao() dao.Dao[models.User] {
+func (f *Factory) GetUserDao() dao.Dao[users.User] {
 	return &UserDao{}
 }
 func (f *Factory) GetOrganizationDao() dao.Dao[models.Organization] {
@@ -21,7 +22,7 @@ func (f *Factory) GetTokenDao() dao.Dao[models.Token] {
 type ErrFactory struct {
 }
 
-func (f *ErrFactory) GetUserDao() dao.Dao[models.User] {
+func (f *ErrFactory) GetUserDao() dao.Dao[users.User] {
 	return &ErrUserDao{}
 }
 func (f *ErrFactory) GetOrganizationDao() dao.Dao[models.Organization] {

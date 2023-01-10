@@ -2,12 +2,13 @@ package dao
 
 import (
 	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Factory interface {
-	GetUserDao() Dao[models.User]
+	GetUserDao() Dao[users.User]
 	GetOrganizationDao() Dao[models.Organization]
 	GetTokenDao() Dao[models.Token]
 }
@@ -18,7 +19,7 @@ type DaoFactory struct {
 	tokenDao        *TokenDao
 }
 
-func (f *DaoFactory) GetUserDao() Dao[models.User] {
+func (f *DaoFactory) GetUserDao() Dao[users.User] {
 	return f.userDao
 }
 

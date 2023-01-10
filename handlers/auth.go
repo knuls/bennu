@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/knuls/bennu/app"
 	"github.com/knuls/bennu/dao"
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
 	"go.mongodb.org/mongo-driver/bson"
@@ -97,7 +97,7 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
-	user := models.NewUser()
+	user := users.NewUser()
 	defer r.Body.Close()
 	if err := user.FromJSON(r.Body); err != nil {
 		h.logger.Error("failed to decode request body", "error", err)
