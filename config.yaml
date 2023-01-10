@@ -19,3 +19,5 @@ security:
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
     headers: ["content-type"]
   allowCredentials: true
+auth:
+  csrf: "some-super-secret-csrf-key"

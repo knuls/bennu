@@ -5,19 +5,19 @@ import (
 	"errors"
 	"time"
 
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type UserDao struct {
-	users     *mongo.Collection
 	validator *validator.Validator
+	users     *mongo.Collection
 }
 
-func (d *UserDao) Find(ctx context.Context, filter Where) ([]*models.User, error) {
-	var users []*models.User
+func (d *UserDao) Find(ctx context.Context, filter Where) ([]*users.User, error) {
+	var users []*users.User
 	cursor, err := d.users.Find(ctx, filter)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -31,7 +31,7 @@ func (d *UserDao) Find(ctx context.Context, filter Where) ([]*models.User, error
 	return users, nil
 }
 
-func (d *UserDao) FindOne(ctx context.Context, filter Where) (*models.User, error) {
+func (d *UserDao) FindOne(ctx context.Context, filter Where) (*users.User, error) {
 	result := d.users.FindOne(ctx, filter)
 	err := result.Err()
 	if err != nil {
@@ -40,14 +40,14 @@ func (d *UserDao) FindOne(ctx context.Context, filter Where) (*models.User, erro
 		}
 		return nil, err
 	}
-	var user *models.User
+	var user *users.User
 	if err = result.Decode(&user); err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (d *UserDao) Create(ctx context.Context, user *models.User) (string, error) {
+func (d *UserDao) Create(ctx context.Context, user *users.User) (string, error) {
 	exists, err := d.Find(ctx, Where{{Key: "email", Value: user.Email}})
 	if err != nil {
 		return "", err
@@ -72,13 +72,13 @@ func (d *UserDao) Create(ctx context.Context, user *models.User) (string, error)
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (d *UserDao) Update(ctx context.Context, user *models.User) (*models.User, error) {
+func (d *UserDao) Update(ctx context.Context, user *users.User) (*users.User, error) {
 	return nil, errors.New("no impl")
 }
 
-func NewUserDao(users *mongo.Collection, validator *validator.Validator) *UserDao {
+func NewUserDao(db *mongo.Database, validator *validator.Validator) *UserDao {
 	return &UserDao{
-		users:     users,
 		validator: validator,
+		users:     db.Collection(usersCollectionName),
 	}
 }

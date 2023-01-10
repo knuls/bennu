@@ -5,19 +5,19 @@ import (
 	"errors"
 	"time"
 
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/organizations"
 	"github.com/knuls/horus/validator"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type OrganizationDao struct {
-	organizations *mongo.Collection
 	validator     *validator.Validator
+	organizations *mongo.Collection
 }
 
-func (d *OrganizationDao) Find(ctx context.Context, filter Where) ([]*models.Organization, error) {
-	var orgs []*models.Organization
+func (d *OrganizationDao) Find(ctx context.Context, filter Where) ([]*organizations.Organization, error) {
+	var orgs []*organizations.Organization
 	cursor, err := d.organizations.Find(ctx, filter)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -31,7 +31,7 @@ func (d *OrganizationDao) Find(ctx context.Context, filter Where) ([]*models.Org
 	return orgs, nil
 }
 
-func (d *OrganizationDao) FindOne(ctx context.Context, filter Where) (*models.Organization, error) {
+func (d *OrganizationDao) FindOne(ctx context.Context, filter Where) (*organizations.Organization, error) {
 	result := d.organizations.FindOne(ctx, filter)
 	err := result.Err()
 	if err != nil {
@@ -40,14 +40,14 @@ func (d *OrganizationDao) FindOne(ctx context.Context, filter Where) (*models.Or
 		}
 		return nil, err
 	}
-	var org *models.Organization
+	var org *organizations.Organization
 	if err = result.Decode(&org); err != nil {
 		return nil, err
 	}
 	return org, nil
 }
 
-func (d *OrganizationDao) Create(ctx context.Context, org *models.Organization) (string, error) {
+func (d *OrganizationDao) Create(ctx context.Context, org *organizations.Organization) (string, error) {
 	exists, err := d.Find(ctx, Where{{Key: "name", Value: org.Name}})
 	if err != nil {
 		return "", err
@@ -68,13 +68,13 @@ func (d *OrganizationDao) Create(ctx context.Context, org *models.Organization) 
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (d *OrganizationDao) Update(ctx context.Context, org *models.Organization) (*models.Organization, error) {
+func (d *OrganizationDao) Update(ctx context.Context, org *organizations.Organization) (*organizations.Organization, error) {
 	return nil, errors.New("no impl")
 }
 
-func NewOrganizationDao(orgs *mongo.Collection, validator *validator.Validator) *OrganizationDao {
+func NewOrganizationDao(db *mongo.Database, validator *validator.Validator) *OrganizationDao {
 	return &OrganizationDao{
-		organizations: orgs,
 		validator:     validator,
+		organizations: db.Collection(organizationsCollectionName),
 	}
 }

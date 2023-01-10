@@ -8,11 +8,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/knuls/bennu/app"
 	"github.com/knuls/bennu/dao"
-	"github.com/knuls/bennu/models"
+	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
 	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/net/xsrftoken"
 )
 
 type loginRequest struct {
@@ -21,8 +23,9 @@ type loginRequest struct {
 }
 
 type authHandler struct {
+	cfg        *app.Config
 	logger     *logger.Logger
-	daoFactory *dao.Factory
+	daoFactory dao.Factory
 }
 
 func (h *authHandler) Routes() *chi.Mux {
@@ -43,12 +46,16 @@ func (h *authHandler) Routes() *chi.Mux {
 }
 
 func (h *authHandler) CSRF(rw http.ResponseWriter, r *http.Request) {
-	//
+	token := xsrftoken.Generate(h.cfg.Auth.Csrf, "", "")
+	render.Status(r, http.StatusOK)
+	if err := render.Render(rw, r, &res.JSON{"token": token}); err != nil {
+		h.logger.Error("failed to render", "error", err)
+	}
 }
 
 func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	var body *loginRequest
-	err := json.NewDecoder(r.Body).Decode(&body)
+	err := json.NewDecoder(r.Body).Decode(body)
 	defer r.Body.Close()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
@@ -90,7 +97,7 @@ func (h *authHandler) Login(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) Register(rw http.ResponseWriter, r *http.Request) {
-	user := models.NewUser()
+	user := users.NewUser()
 	defer r.Body.Close()
 	if err := user.FromJSON(r.Body); err != nil {
 		h.logger.Error("failed to decode request body", "error", err)
@@ -132,9 +139,10 @@ func (h *authHandler) Logout(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func NewAuthHandler(logger *logger.Logger, factory *dao.Factory) *authHandler {
+func NewAuthHandler(logger *logger.Logger, factory dao.Factory, c *app.Config) *authHandler {
 	return &authHandler{
 		logger:     logger,
 		daoFactory: factory,
+		cfg:        c,
 	}
 }

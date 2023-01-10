@@ -1,4 +1,4 @@
-package models
+package auth
 
 import (
 	"time"
@@ -14,4 +14,8 @@ type Token struct {
 	UserID    primitive.ObjectID `json:"userId" bson:"userId" validate:"required,oid"`
 	CreatedAt time.Time          `json:"createdAt" bson:"createdAt" validate:"required"`
 	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt" validate:"required"`
+}
+
+func NewToken() *Token {
+	return &Token{}
 }
