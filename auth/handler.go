@@ -12,8 +12,6 @@ import (
 	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
-	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/net/xsrftoken"
 )
 
 type loginRequest struct {
@@ -22,18 +20,14 @@ type loginRequest struct {
 }
 
 type handler struct {
-	cfg     *app.Config
-	logger  *logger.Logger
-	dao     *dao
-	userDao *users.Dao
+	logger *logger.Logger
+	svc    *service
 }
 
-func NewHandler(cfg *app.Config, logger *logger.Logger, dao *dao, userDao *users.Dao) *handler {
+func NewHandler(cfg *app.Config, logger *logger.Logger, tokenDao *dao, userDao *users.Dao) *handler {
 	return &handler{
-		cfg:     cfg,
-		logger:  logger,
-		dao:     dao,
-		userDao: userDao,
+		logger: logger,
+		svc:    NewService(cfg, tokenDao, userDao),
 	}
 }
 
@@ -55,7 +49,7 @@ func (h *handler) Routes() *chi.Mux {
 }
 
 func (h *handler) CSRF(rw http.ResponseWriter, r *http.Request) {
-	token := xsrftoken.Generate(h.cfg.Auth.Csrf, "", "")
+	token := h.svc.GetCSRF()
 	render.Status(r, http.StatusOK)
 	if err := render.Render(rw, r, &res.JSON{"token": token}); err != nil {
 		h.logger.Error("failed to render", "error", err)
@@ -64,7 +58,7 @@ func (h *handler) CSRF(rw http.ResponseWriter, r *http.Request) {
 
 func (h *handler) Login(rw http.ResponseWriter, r *http.Request) {
 	var body *loginRequest
-	err := json.NewDecoder(r.Body).Decode(body)
+	err := json.NewDecoder(r.Body).Decode(&body)
 	defer r.Body.Close()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
@@ -76,31 +70,15 @@ func (h *handler) Login(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-	where := bson.D{
-		{Key: "$and",
-			Value: bson.A{
-				bson.D{{Key: "email", Value: body.Email}},
-				bson.D{{Key: "verified", Value: true}},
-			},
-		},
-	}
-	user, err := h.userDao.FindOne(r.Context(), where)
+	token, err := h.svc.Login(r.Context(), body.Email, body.Password)
 	if err != nil {
-		h.logger.Error("failed to find user", "error", err)
+		h.logger.Error("failed to login user", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	if err := user.ComparePassword(body.Password); err != nil {
-		h.logger.Error("failed to compare user password", "error", err)
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-
-	// TODO: create access & refresh tokens
 	// TODO: set access token in resp & refresh token in cookie
-
 	render.Status(r, http.StatusOK)
-	if err = render.Render(rw, r, &res.JSON{"token": "token"}); err != nil {
+	if err = render.Render(rw, r, &res.JSON{"token": token}); err != nil {
 		h.logger.Error("failed to render", "error", err)
 	}
 }
@@ -113,15 +91,12 @@ func (h *handler) Register(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-	id, err := h.userDao.Create(r.Context(), user)
+	id, err := h.svc.Register(r.Context(), user)
 	if err != nil {
-		h.logger.Error("failed to create user", "error", err)
+		h.logger.Error("failed to register user", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-
-	// TODO: create token & send verify email with token
-
 	render.Status(r, http.StatusCreated)
 	if err = render.Render(rw, r, &res.JSON{"id": id}); err != nil {
 		h.logger.Error("failed to render", "error", err)

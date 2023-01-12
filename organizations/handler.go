@@ -10,14 +10,20 @@ import (
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/res"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type organizationIDCtxKey struct{}
 
 type handler struct {
 	logger *logger.Logger
-	dao    *dao
+	svc    *service
+}
+
+func NewHandler(logger *logger.Logger, organizationDao *dao) *handler {
+	return &handler{
+		logger: logger,
+		svc:    NewService(organizationDao),
+	}
 }
 
 func (h *handler) Routes() *chi.Mux {
@@ -33,18 +39,14 @@ func (h *handler) Routes() *chi.Mux {
 }
 
 func (h *handler) Find(rw http.ResponseWriter, r *http.Request) {
-	orgs, err := h.dao.Find(r.Context(), bson.D{})
+	organizations, err := h.svc.Find(r.Context(), bson.D{})
 	if err != nil {
 		h.logger.Error("failed to find organizations", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	renders := []render.Renderer{}
-	for _, org := range orgs {
-		renders = append(renders, org)
-	}
 	render.Status(r, http.StatusOK)
-	if err = render.Render(rw, r, &res.JSON{"organizations": renders}); err != nil {
+	if err = render.Render(rw, r, &res.JSON{"organizations": organizations}); err != nil {
 		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
@@ -59,7 +61,7 @@ func (h *handler) Create(rw http.ResponseWriter, r *http.Request) {
 		render.Render(rw, r, res.ErrDecode(err))
 		return
 	}
-	id, err := h.dao.Create(r.Context(), org)
+	id, err := h.svc.Create(r.Context(), org)
 	if err != nil {
 		h.logger.Error("failed to create organization", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
@@ -71,38 +73,25 @@ func (h *handler) Create(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func organizationCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), organizationIDCtxKey{}, chi.URLParam(r, "id"))
-		next.ServeHTTP(w, r.Clone(ctx))
-	})
-}
-
 func (h *handler) FindById(rw http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(organizationIDCtxKey{}).(string)
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.logger.Error("failed to convert hex to object id", "error", err)
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-	org, err := h.dao.FindOne(r.Context(), bson.D{{Key: "_id", Value: oid}})
+	organization, err := h.svc.FindById(r.Context(), id)
 	if err != nil {
 		h.logger.Error("failed to find organization", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
 	render.Status(r, http.StatusOK)
-	if err := render.Render(rw, r, &res.JSON{"organization": org}); err != nil {
+	if err := render.Render(rw, r, &res.JSON{"organization": organization}); err != nil {
 		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
 	}
 }
 
-func NewHandler(logger *logger.Logger, dao *dao) *handler {
-	return &handler{
-		logger: logger,
-		dao:    dao,
-	}
+func organizationCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), organizationIDCtxKey{}, chi.URLParam(r, "id"))
+		next.ServeHTTP(w, r.Clone(ctx))
+	})
 }

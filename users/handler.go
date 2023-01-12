@@ -10,14 +10,20 @@ import (
 	"github.com/knuls/horus/middlewares"
 	"github.com/knuls/horus/res"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type userIDCtxKey struct{}
 
 type handler struct {
 	logger *logger.Logger
-	dao    *Dao
+	svc    *service
+}
+
+func NewHandler(logger *logger.Logger, userDao *Dao) *handler {
+	return &handler{
+		logger: logger,
+		svc:    NewService(userDao),
+	}
 }
 
 func (h *handler) Routes() *chi.Mux {
@@ -32,18 +38,14 @@ func (h *handler) Routes() *chi.Mux {
 }
 
 func (h *handler) Find(rw http.ResponseWriter, r *http.Request) {
-	users, err := h.dao.Find(r.Context(), bson.D{})
+	users, err := h.svc.Find(r.Context(), bson.D{})
 	if err != nil {
 		h.logger.Error("failed to find users", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
 		return
 	}
-	renders := []render.Renderer{}
-	for _, user := range users {
-		renders = append(renders, user)
-	}
 	render.Status(r, http.StatusOK)
-	if err := render.Render(rw, r, &res.JSON{"users": renders}); err != nil {
+	if err := render.Render(rw, r, &res.JSON{"users": users}); err != nil {
 		h.logger.Error("failed to render", "error", err)
 		render.Render(rw, r, res.ErrRender(err))
 		return
@@ -52,13 +54,7 @@ func (h *handler) Find(rw http.ResponseWriter, r *http.Request) {
 
 func (h *handler) FindById(rw http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(userIDCtxKey{}).(string)
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.logger.Error("failed to convert hex to object id", "error", err)
-		render.Render(rw, r, res.ErrBadRequest(err))
-		return
-	}
-	user, err := h.dao.FindOne(r.Context(), bson.D{{Key: "_id", Value: oid}})
+	user, err := h.svc.FindById(r.Context(), id)
 	if err != nil {
 		h.logger.Error("failed to find user", "error", err)
 		render.Render(rw, r, res.ErrBadRequest(err))
@@ -77,11 +73,4 @@ func userCtx(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), userIDCtxKey{}, chi.URLParam(r, "id"))
 		next.ServeHTTP(w, r.Clone(ctx))
 	})
-}
-
-func NewHandler(logger *logger.Logger, dao *Dao) *handler {
-	return &handler{
-		logger: logger,
-		dao:    dao,
-	}
 }
