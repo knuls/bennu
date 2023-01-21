@@ -72,7 +72,7 @@ func (d *Dao) Create(ctx context.Context, user *User) (string, error) {
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (d *Dao) Update(ctx context.Context, user *User) ([]*User, error) {
+func (d *Dao) Update(ctx context.Context, user *User) (*User, error) {
 	return nil, errors.New("no impl")
 }
 

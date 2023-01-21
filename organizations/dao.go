@@ -68,7 +68,7 @@ func (d *Dao) Create(ctx context.Context, org *Organization) (string, error) {
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (d *Dao) Update(ctx context.Context, org *Organization) ([]*Organization, error) {
+func (d *Dao) Update(ctx context.Context, org *Organization) (*Organization, error) {
 	return nil, errors.New("no impl")
 }
 

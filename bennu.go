@@ -13,7 +13,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/knuls/bennu/app"
 	"github.com/knuls/bennu/auth"
-	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/organizations"
 	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/config"
@@ -99,18 +98,10 @@ func main() {
 	organizationsCol := db.Collection("organizations")
 	tokensCol := db.Collection("tokens")
 
-	// TODO: turn mongo.Client into db.Store
-	// 		 pass store{} into factory{}
-
 	// daos
 	userDao := users.NewDao(v, usersCol)
 	orgDao := organizations.NewDao(v, organizationsCol)
 	tokenDao := auth.NewDao(v, tokensCol)
-	factory := dao.NewFactory(v, db)
-
-	// TODO: turn daos into dao.Factory
-	// 		 pass factory{} into services (create daos using NewDao() in dao.NewFactory())
-	//		 factory{} will have methods such like getUserDao()
 
 	// svc
 	userSvc := users.NewService(userDao)
