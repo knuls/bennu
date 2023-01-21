@@ -11,11 +11,11 @@ import (
 
 type service struct {
 	cfg      *app.Config
-	tokenDao *dao
+	tokenDao *Dao
 	userDao  *users.Dao
 }
 
-func NewService(cfg *app.Config, tokenDao *dao, userDao *users.Dao) *service {
+func NewService(cfg *app.Config, tokenDao *Dao, userDao *users.Dao) *service {
 	return &service{
 		cfg:      cfg,
 		tokenDao: tokenDao,

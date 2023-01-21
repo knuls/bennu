@@ -9,29 +9,29 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type dao struct {
+type Dao struct {
 	validator *validator.Validator
 	tokens    *mongo.Collection
 }
 
-func (d *dao) Find(ctx context.Context, filter bson.D) ([]*Token, error) {
+func (d *Dao) Find(ctx context.Context, filter bson.D) ([]*Token, error) {
 	return nil, errors.New("no impl")
 }
 
-func (d *dao) FindOne(ctx context.Context, filter bson.D) (*Token, error) {
+func (d *Dao) FindOne(ctx context.Context, filter bson.D) (*Token, error) {
 	return nil, errors.New("no impl")
 }
 
-func (d *dao) Create(ctx context.Context, token *Token) (string, error) {
+func (d *Dao) Create(ctx context.Context, token *Token) (string, error) {
 	return "", errors.New("no impl")
 }
 
-func (d *dao) Update(ctx context.Context, token *Token) (*Token, error) {
+func (d *Dao) Update(ctx context.Context, token *Token) (*Token, error) {
 	return nil, errors.New("no impl")
 }
 
-func NewDao(validator *validator.Validator, tokens *mongo.Collection) *dao {
-	return &dao{
+func NewDao(validator *validator.Validator, tokens *mongo.Collection) *Dao {
+	return &Dao{
 		validator: validator,
 		tokens:    tokens,
 	}

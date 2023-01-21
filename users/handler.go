@@ -19,10 +19,10 @@ type handler struct {
 	svc    *service
 }
 
-func NewHandler(logger *logger.Logger, userDao *Dao) *handler {
+func NewHandler(logger *logger.Logger, svc *service) *handler {
 	return &handler{
 		logger: logger,
-		svc:    NewService(userDao),
+		svc:    svc,
 	}
 }
 

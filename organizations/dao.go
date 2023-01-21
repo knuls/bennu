@@ -11,12 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type dao struct {
+type Dao struct {
 	validator     *validator.Validator
 	organizations *mongo.Collection
 }
 
-func (d *dao) Find(ctx context.Context, filter bson.D) ([]*Organization, error) {
+func (d *Dao) Find(ctx context.Context, filter bson.D) ([]*Organization, error) {
 	var orgs []*Organization
 	cursor, err := d.organizations.Find(ctx, filter)
 	if err != nil {
@@ -31,7 +31,7 @@ func (d *dao) Find(ctx context.Context, filter bson.D) ([]*Organization, error) 
 	return orgs, nil
 }
 
-func (d *dao) FindOne(ctx context.Context, filter bson.D) (*Organization, error) {
+func (d *Dao) FindOne(ctx context.Context, filter bson.D) (*Organization, error) {
 	result := d.organizations.FindOne(ctx, filter)
 	err := result.Err()
 	if err != nil {
@@ -47,7 +47,7 @@ func (d *dao) FindOne(ctx context.Context, filter bson.D) (*Organization, error)
 	return org, nil
 }
 
-func (d *dao) Create(ctx context.Context, org *Organization) (string, error) {
+func (d *Dao) Create(ctx context.Context, org *Organization) (string, error) {
 	exists, err := d.Find(ctx, bson.D{{Key: "name", Value: org.Name}})
 	if err != nil {
 		return "", err
@@ -68,12 +68,12 @@ func (d *dao) Create(ctx context.Context, org *Organization) (string, error) {
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (d *dao) Update(ctx context.Context, org *Organization) ([]*Organization, error) {
+func (d *Dao) Update(ctx context.Context, org *Organization) ([]*Organization, error) {
 	return nil, errors.New("no impl")
 }
 
-func NewDao(validator *validator.Validator, organizations *mongo.Collection) *dao {
-	return &dao{
+func NewDao(validator *validator.Validator, organizations *mongo.Collection) *Dao {
+	return &Dao{
 		validator:     validator,
 		organizations: organizations,
 	}

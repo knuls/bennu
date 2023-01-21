@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/knuls/bennu/app"
 	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/logger"
 	"github.com/knuls/horus/res"
@@ -24,10 +23,10 @@ type handler struct {
 	svc    *service
 }
 
-func NewHandler(cfg *app.Config, logger *logger.Logger, tokenDao *dao, userDao *users.Dao) *handler {
+func NewHandler(logger *logger.Logger, svc *service) *handler {
 	return &handler{
 		logger: logger,
-		svc:    NewService(cfg, tokenDao, userDao),
+		svc:    svc,
 	}
 }
 

@@ -8,34 +8,28 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type Factory interface {
-	GetUserDao() Dao[users.User]
-	GetOrganizationDao() Dao[organizations.Organization]
-	GetTokenDao() Dao[auth.Token]
+type Factory struct {
+	userDao         *users.Dao
+	organizationDao *organizations.Dao
+	tokenDao        *auth.Dao
 }
 
-type DaoFactory struct {
-	userDao         *UserDao
-	organizationDao *OrganizationDao
-	tokenDao        *TokenDao
-}
-
-func (f *DaoFactory) GetUserDao() Dao[users.User] {
+func (f *Factory) GetUserDao() *users.Dao {
 	return f.userDao
 }
 
-func (f *DaoFactory) GetOrganizationDao() Dao[organizations.Organization] {
+func (f *Factory) GetOrganizationDao() *organizations.Dao {
 	return f.organizationDao
 }
 
-func (f *DaoFactory) GetTokenDao() Dao[auth.Token] {
+func (f *Factory) GetTokenDao() *auth.Dao {
 	return f.tokenDao
 }
 
-func NewDaoFactory(db *mongo.Database, validator *validator.Validator) *DaoFactory {
-	return &DaoFactory{
-		userDao:         NewUserDao(db, validator),
-		organizationDao: NewOrganizationDao(db, validator),
-		tokenDao:        NewTokenDao(db, validator),
+func NewFactory(validator *validator.Validator, db *mongo.Database) *Factory {
+	return &Factory{
+		userDao:         users.NewDao(validator, db.Collection("users")),
+		organizationDao: organizations.NewDao(validator, db.Collection("organizations")),
+		tokenDao:        auth.NewDao(validator, db.Collection("tokens")),
 	}
 }

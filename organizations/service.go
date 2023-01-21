@@ -9,10 +9,10 @@ import (
 )
 
 type service struct {
-	organizationDao *dao
+	organizationDao *Dao
 }
 
-func NewService(organizationDao *dao) *service {
+func NewService(organizationDao *Dao) *service {
 	return &service{
 		organizationDao: organizationDao,
 	}
