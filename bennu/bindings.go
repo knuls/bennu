@@ -1,4 +1,4 @@
-package app
+package bennu
 
 var Bindings = []string{
 	"service.name",

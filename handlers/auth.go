@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/knuls/bennu/app"
+	"github.com/knuls/bennu/bennu"
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/users"
 	"github.com/knuls/horus/logger"
@@ -23,7 +23,7 @@ type loginRequest struct {
 }
 
 type authHandler struct {
-	cfg        *app.Config
+	cfg        *bennu.Config
 	logger     *logger.Logger
 	daoFactory dao.Factory
 }
@@ -139,7 +139,7 @@ func (h *authHandler) Logout(rw http.ResponseWriter, r *http.Request) {
 	//
 }
 
-func NewAuthHandler(logger *logger.Logger, factory dao.Factory, c *app.Config) *authHandler {
+func NewAuthHandler(logger *logger.Logger, factory dao.Factory, c *bennu.Config) *authHandler {
 	return &authHandler{
 		logger:     logger,
 		daoFactory: factory,
