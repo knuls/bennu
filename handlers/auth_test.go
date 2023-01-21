@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/knuls/bennu/app"
+	"github.com/knuls/bennu/bennu"
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/dao/mocks"
 	"github.com/knuls/horus/logger"
@@ -23,7 +23,7 @@ func TestAuthHandler(t *testing.T) {
 	defer logger.GetLogger().Sync()
 	factory := &mocks.Factory{}
 	// errFactory := &mocks.ErrFactory{}
-	config := &app.Config{}
+	config := &bennu.Config{}
 	config.Auth.Csrf = "some-csrf-key"
 
 	// tests

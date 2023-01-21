@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/knuls/bennu/app"
+	"github.com/knuls/bennu/bennu"
 	"github.com/knuls/bennu/dao"
 	"github.com/knuls/bennu/handlers"
 	"github.com/knuls/horus/config"
@@ -39,8 +39,8 @@ func main() {
 		return
 	}
 	c.SetFile(".", "config", "yaml")
-	c.SetBindings(app.Bindings)
-	var cfg *app.Config
+	c.SetBindings(bennu.Bindings)
+	var cfg *bennu.Config
 	if err := c.Load(&cfg); err != nil {
 		log.Error("config load", "error", err)
 		return
