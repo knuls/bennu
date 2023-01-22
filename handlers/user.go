@@ -20,6 +20,13 @@ type userHandler struct {
 	daoFactory dao.Factory
 }
 
+func NewUserHandler(logger logger.Logger, factory dao.Factory) *userHandler {
+	return &userHandler{
+		logger:     logger,
+		daoFactory: factory,
+	}
+}
+
 func (h *userHandler) Routes() *chi.Mux {
 	mux := chi.NewRouter()
 	mux.Get("/", h.Find) // GET /user
@@ -77,11 +84,4 @@ func UserCtx(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), userIDCtxKey{}, chi.URLParam(r, "id"))
 		next.ServeHTTP(w, r.Clone(ctx))
 	})
-}
-
-func NewUserHandler(l logger.Logger, factory dao.Factory) *userHandler {
-	return &userHandler{
-		logger:     l,
-		daoFactory: factory,
-	}
 }

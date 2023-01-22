@@ -21,6 +21,13 @@ type organizationHandler struct {
 	daoFactory dao.Factory
 }
 
+func NewOrganizationHandler(logger logger.Logger, factory dao.Factory) *organizationHandler {
+	return &organizationHandler{
+		logger:     logger,
+		daoFactory: factory,
+	}
+}
+
 func (h *organizationHandler) Routes() *chi.Mux {
 	mux := chi.NewRouter()
 	mux.Get("/", h.Find)    // GET /organization
@@ -99,11 +106,4 @@ func OrganizationCtx(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), organizationIDCtxKey{}, chi.URLParam(r, "id"))
 		next.ServeHTTP(w, r.Clone(ctx))
 	})
-}
-
-func NewOrganizationHandler(l logger.Logger, factory dao.Factory) *organizationHandler {
-	return &organizationHandler{
-		logger:     l,
-		daoFactory: factory,
-	}
 }
