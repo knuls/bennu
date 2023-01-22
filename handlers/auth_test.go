@@ -6,24 +6,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/knuls/bennu/bennu"
+	"github.com/knuls/bennu/app"
 	"github.com/knuls/bennu/dao"
-	"github.com/knuls/bennu/dao/mocks"
-	"github.com/knuls/horus/logger"
+	daoMocks "github.com/knuls/bennu/dao/mocks"
+	logMocks "github.com/knuls/horus/logger/mocks"
 )
 
 func TestAuthHandler(t *testing.T) {
 	t.Parallel()
 
 	// mocks
-	logger, err := logger.New()
-	if err != nil {
-		t.Error(err)
-	}
-	defer logger.GetLogger().Sync()
-	factory := &mocks.Factory{}
-	// errFactory := &mocks.ErrFactory{}
-	config := &bennu.Config{}
+	logger := logMocks.NewLogger()
+	factory := &daoMocks.Factory{}
+	// errFactory := &daoMocks.ErrFactory{}
+	config := &app.Config{}
 	config.Auth.Csrf = "some-csrf-key"
 
 	// tests

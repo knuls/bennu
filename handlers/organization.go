@@ -17,7 +17,7 @@ import (
 type organizationIDCtxKey struct{}
 
 type organizationHandler struct {
-	logger     *logger.Logger
+	logger     logger.Logger
 	daoFactory dao.Factory
 }
 
@@ -101,9 +101,9 @@ func OrganizationCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewOrganizationHandler(logger *logger.Logger, factory dao.Factory) *organizationHandler {
+func NewOrganizationHandler(l logger.Logger, factory dao.Factory) *organizationHandler {
 	return &organizationHandler{
-		logger:     logger,
+		logger:     l,
 		daoFactory: factory,
 	}
 }

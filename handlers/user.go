@@ -16,7 +16,7 @@ import (
 type userIDCtxKey struct{}
 
 type userHandler struct {
-	logger     *logger.Logger
+	logger     logger.Logger
 	daoFactory dao.Factory
 }
 
@@ -79,9 +79,9 @@ func UserCtx(next http.Handler) http.Handler {
 	})
 }
 
-func NewUserHandler(logger *logger.Logger, factory dao.Factory) *userHandler {
+func NewUserHandler(l logger.Logger, factory dao.Factory) *userHandler {
 	return &userHandler{
-		logger:     logger,
+		logger:     l,
 		daoFactory: factory,
 	}
 }
